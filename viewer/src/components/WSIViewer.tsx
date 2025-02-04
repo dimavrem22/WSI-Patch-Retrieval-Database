@@ -7,63 +7,30 @@ import TileGrid from "ol/tilegrid/TileGrid";
 import { defaults as defaultControls } from "ol/control";
 import { SlideMetadata } from "../types"; // Ensure this is the correct path
 
-const metadata: SlideMetadata = {
-  level_count: 17,
-  level_dimentions: [
-    [1, 1],
-    [2, 2],
-    [3, 3],
-    [5, 5],
-    [9, 10],
-    [18, 19],
-    [36, 38],
-    [71, 76],
-    [141, 151],
-    [281, 301],
-    [561, 602],
-    [1121, 1203],
-    [2241, 2406],
-    [4482, 4811],
-    [8964, 9622],
-    [17928, 19244],
-    [35856, 38487],
-  ],
-  extent: [0, 0, 35856, 38487], // Adjusted to fit tile grid
-  level_tiles: [
-    [1, 1],
-    [1, 1],
-    [1, 1],
-    [1, 1],
-    [1, 1],
-    [1, 1],
-    [1, 1],
-    [1, 1],
-    [1, 1],
-    [2, 2],
-    [3, 3],
-    [5, 5],
-    [9, 10],
-    [18, 19],
-    [36, 38],
-    [71, 76],
-    [141, 151],
-  ],
-  startZoom: 10,
-  minZoom: 8,
-  maxZoom: 17,
-  mpp_x: 0.2457,
-  mpp_y: 0.2457,
-  resolutions: [
-    65536, 32768, 16384, 8192, 4096, 2048, 1024, 512, 256, 128, 64, 32, 16, 8, 4, 2, 1,
-  ],
-};
-
 const WSIViewer = () => {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstance = useRef<Map | null>(null);
+  const [metadata, setMetadata] = useState<SlideMetadata | null>(null);
 
   useEffect(() => {
-    if (!mapRef.current) return;
+    const fetchMetadata = async () => {
+      try {
+        const response = await fetch("http://localhost:8000/metadata/");
+        if (!response.ok) {
+          throw new Error("Failed to fetch metadata");
+        }
+        const data = await response.json();
+        setMetadata(data);
+      } catch (error) {
+        console.error("Error fetching metadata:", error);
+      }
+    };
+
+    fetchMetadata();
+  }, []);
+
+  useEffect(() => {
+    if (!mapRef.current || !metadata) return;
 
     // Tile Grid Setup
     const slideGrid = new TileGrid({
@@ -105,7 +72,11 @@ const WSIViewer = () => {
     return () => {
       mapInstance.current?.setTarget(undefined);
     };
-  }, []);
+  }, [metadata]);
+
+  if (!metadata) {
+    return <div>Loading metadata...</div>;
+  }
 
   return <div ref={mapRef} className="wsi-viewer" />;
 };

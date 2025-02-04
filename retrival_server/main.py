@@ -30,7 +30,7 @@ deepzoom = DeepZoomGenerator(slide, tile_size=256, overlap=0, limit_bounds=False
 def get_metadata() -> Dict:
 
     # dimentions of the lowest resolution
-    extent = deepzoom.level_dimensions[0]
+    extent = deepzoom.level_dimensions[-1]
     level_tiles = np.array(deepzoom.level_tiles)
 
     # first layer with more than 1 tile in each x and y axes
