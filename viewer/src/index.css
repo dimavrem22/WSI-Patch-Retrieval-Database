@@ -68,8 +68,8 @@ button:focus-visible {
 }
 
 .wsi-viewer {
-  width: 100vw;  /* Full viewport width */
-  height: 100vh;  /* Full viewport height */
+  width: 95vw;  /* Full viewport width */
+  height: 95vh;  /* Full viewport height */
   min-width: 500px; /* Ensure it's never collapsed */
   min-height: 500px; /* Prevent zero height */
   position: relative; /* Required for OpenLayers */

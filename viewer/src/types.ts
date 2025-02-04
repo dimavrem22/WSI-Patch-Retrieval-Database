@@ -1,3 +1,17 @@
+
+export enum TileMagnification {
+    LEVEL_0 = "5x",
+    LEVEL_1 = "10x",
+    LEVEL_2 = "20x",
+};
+
+export type Tile = {
+    magnification: TileMagnification;
+    x: number;
+    y: number;
+    size: number;
+};
+
 export type SlideMetadata = {
     level_count: number;
     level_dimentions: [number, number][]; // Array of [width, height] pairs
@@ -9,4 +23,5 @@ export type SlideMetadata = {
     mpp_x: number;
     mpp_y: number;
     resolutions: number[]; // Array of zoom resolutions
+    tiles: Tile[];
   };

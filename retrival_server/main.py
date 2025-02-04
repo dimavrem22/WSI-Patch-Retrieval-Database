@@ -7,6 +7,8 @@ from openslide.deepzoom import DeepZoomGenerator
 import numpy as np
 from typing import Dict, Tuple
 from starlette.responses import StreamingResponse
+import json
+
 
 app = FastAPI()
 
@@ -20,8 +22,15 @@ app.add_middleware(
 )
 
 # Load whole-slide image (Modify path accordingly)
-WSI_PATH = "../TEST/test.svs"  # Change this to your WSI file path
+WSI_PATH = "../TEST/test_2.svs"  # Change this to your WSI file path
 slide = openslide.OpenSlide(WSI_PATH)
+
+# Load Coordinates
+COORDS_PATH = '../TEST/coords_5x.json'
+with open(COORDS_PATH, "r") as f:
+    coordinates_data = json.load(f)
+    coordinates = coordinates_data['coordinates']
+    patch_size = coordinates_data['patch_size'][0]
 
 # Initialize DeepZoomGenerator
 deepzoom = DeepZoomGenerator(slide, tile_size=256, overlap=0, limit_bounds=False)
@@ -35,7 +44,7 @@ def get_metadata() -> Dict:
 
     # first layer with more than 1 tile in each x and y axes
     min_layer = np.where((level_tiles[:, 0] > 1) & (level_tiles[:, 1] > 1))[0][0]
-    min_zoom = int(deepzoom.level_count - min_layer)
+    min_zoom = int(deepzoom.level_count - min_layer - 2)
 
 
     resolutions = [2**i for i in range(deepzoom.level_count)][::-1]
@@ -51,6 +60,12 @@ def get_metadata() -> Dict:
         "mpp_x": float(slide.properties.get("openslide.mpp-x", "0")),
         "mpp_y": float(slide.properties.get("openslide.mpp-y", "0")),
         "resolutions": resolutions,
+        "tiles": [{
+            "magnification": "5x",
+            "size": [patch_size],
+            "x": c[0],
+            "y": c[1],
+        } for c in coordinates]
     }
 
 
