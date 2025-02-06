@@ -8,20 +8,25 @@ import VectorLayer from "ol/layer/Vector";
 import VectorSource from "ol/source/Vector";
 import { Feature } from "ol";
 import { Polygon } from "ol/geom";
-import { Style, Stroke } from "ol/style";
-import { defaults as defaultControls} from "ol/control";
-import { defaults as defaultInteractions} from "ol/interaction";
+import { Style, Stroke, Fill } from "ol/style";
+import { defaults as defaultControls } from "ol/control";
+import { defaults as defaultInteractions } from "ol/interaction";
 import MousePosition from "ol/control/MousePosition";
 import { createStringXY } from "ol/coordinate";
-import { SlideMetadata } from "../types";
+import { SlideMetadata, TileMagnification } from "../types";
 import "ol/ol.css";
 
-const WSIViewer = () => {
+interface WSIViewerProps {
+  tileMagnification: TileMagnification | null;
+}
+
+const WSIViewer: React.FC<WSIViewerProps> = ({ tileMagnification }) => {
+  console.log("Tile Magnification:", tileMagnification);
   const mapRef = useRef<HTMLDivElement>(null);
   const coordRef = useRef<HTMLDivElement>(null);
   const mapInstance = useRef<Map | null>(null);
+  const vectorSourceRef = useRef<VectorSource>(new VectorSource());
   const [metadata, setMetadata] = useState<SlideMetadata | null>(null);
-  const [coordinates, setCoordinates] = useState<string>("X: -, Y : -");
 
   useEffect(() => {
     const fetchMetadata = async () => {
@@ -68,12 +73,16 @@ const WSIViewer = () => {
       source: tileSource,
     });
 
-    // Generate Tile Outlines
+    // ✅ Create Vector Source for Tiles
     const vectorSource = new VectorSource();
-    metadata.tiles.forEach((tile) => {
+    vectorSourceRef.current = vectorSource;
+
+    // ✅ Create Tiles as Features
+    metadata.tiles.filter((tile) => {
+      return tile.magnification == tileMagnification;
+    }).forEach((tile) => {
       const x = metadata.extent[0] + tile.x;
       const y = metadata.extent[3] - tile.y - tile.size;
-
       const sizeX = tile.size * scaleX;
       const sizeY = tile.size * scaleY;
 
@@ -91,6 +100,7 @@ const WSIViewer = () => {
         geometry: tilePolygon,
       });
 
+      // Default Tile Style (Red Outline, No Fill)
       tileFeature.setStyle(
         new Style({
           stroke: new Stroke({
@@ -108,7 +118,7 @@ const WSIViewer = () => {
       source: vectorSource,
     });
 
-    // Create MousePosition Control
+    // ✅ Restore Old Coordinate Text Box Behavior
     const mousePositionControl = new MousePosition({
       coordinateFormat: createStringXY(2),
       projection: "EPSG:3857",
@@ -116,20 +126,7 @@ const WSIViewer = () => {
       target: coordRef.current,
     });
 
-    // Handle Mouse Enter & Leave Events
-    mapRef.current.addEventListener("pointermove", (event) => {
-      const map = mapInstance.current;
-      if (map) {
-        const coords = map.getEventCoordinate(event);
-        setCoordinates(`X: ${coords[0].toFixed(2)}, Y: ${coords[1].toFixed(2)}`);
-      }
-    });
-
-    mapRef.current.addEventListener("mouseleave", () => {
-      setCoordinates("X: -, Y : -");
-    });
-
-    // Create OpenLayers Map (Disable Double-Click Zoom)
+    // ✅ Create OpenLayers Map (Disable Double-Click Zoom)
     mapInstance.current = new Map({
       target: mapRef.current,
       layers: [tileLayer, vectorLayer],
@@ -138,7 +135,7 @@ const WSIViewer = () => {
       ]),
       interactions: defaultInteractions({ doubleClickZoom: false }),
       view: new View({
-        projection: "EPSG:3857",  
+        projection: "EPSG:3857",
         center: [
           metadata.extent[0] + (metadata.extent[2] - metadata.extent[0]) / 2,
           metadata.extent[1] + (metadata.extent[3] - metadata.extent[1]) / 2,
@@ -150,10 +147,71 @@ const WSIViewer = () => {
       }),
     });
 
+    // ✅ Update Coordinate Text Box on Mouse Move
+    mapRef.current.addEventListener("pointermove", (event) => {
+      const map = mapInstance.current;
+      if (map) {
+        const coords = map.getEventCoordinate(event);
+        if (coordRef.current) {
+          coordRef.current.innerText = `X: ${coords[0].toFixed(2)}, Y: ${coords[1].toFixed(2)}`;
+        }
+      }
+    });
+
+    // ✅ Reset Text Box on Mouse Leave
+    mapRef.current.addEventListener("mouseleave", () => {
+      if (coordRef.current) {
+        coordRef.current.innerText = "X: -, Y: -".trim(); // ✅ Trim to prevent extra lines
+      }
+    });
+
+    // ✅ Click Event to Highlight Tile
+    mapInstance.current.on("singleclick", (event) => {
+      const clickedCoords = event.coordinate;
+      console.log(`Clicked at: X: ${clickedCoords[0].toFixed(2)}, Y: ${clickedCoords[1].toFixed(2)}`);
+
+      // Find the clicked tile
+      let clickedFeature: Feature<Polygon> | null = null;
+      vectorSource.forEachFeature((feature) => {
+        if (feature.getGeometry()?.intersectsCoordinate(clickedCoords)) {
+          clickedFeature = feature as Feature<Polygon>;
+        }
+      });
+
+      if (clickedFeature) {
+        console.log("Tile clicked:", clickedFeature);
+
+        // Remove previous highlights
+        vectorSource.forEachFeature((feature) => {
+          (feature as Feature<Polygon>).setStyle(
+            new Style({
+              stroke: new Stroke({
+                color: "red",
+                width: 2,
+              }),
+            })
+          );
+        });
+
+        // ✅ Highlight clicked tile (Yellow Fill)
+        (clickedFeature as Feature<Polygon>).setStyle(
+          new Style({
+            stroke: new Stroke({
+              color: "red",
+              width: 2,
+            }),
+            fill: new Fill({
+              color: "hsla(60, 91.20%, 44.50%, 0.27)", // Light yellow with low opacity
+            }),
+          })
+        );
+      }
+    });
+
     return () => {
       mapInstance.current?.setTarget(undefined);
     };
-  }, [metadata]);
+  }, [metadata, tileMagnification]);
 
   if (!metadata) {
     return <div>Loading metadata...</div>;
@@ -161,9 +219,9 @@ const WSIViewer = () => {
 
   return (
     <div className="map-container">
-      <div ref={mapRef} className="wsi-viewer" />
-      <div ref={coordRef} className="mouse-coordinates">{coordinates}</div>
-    </div>
+    <div ref={mapRef} className="wsi-viewer" />
+    <div ref={coordRef} className="mouse-coordinates"></div> {/* ✅ Start empty to avoid whitespace issues */}
+  </div>
   );
 };
 

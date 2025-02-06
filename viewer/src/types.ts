@@ -1,9 +1,15 @@
 
 export enum TileMagnification {
-    LEVEL_0 = "5x",
-    LEVEL_1 = "10x",
-    LEVEL_2 = "20x",
+    LEVEL_0 = "none",
+    LEVEL_1 = "5x",
+    LEVEL_2 = "10x",
+    LEVEL_3 = "20x",
 };
+
+export const toTileMagnification = (value: string): TileMagnification => {
+    const magnification = Object.values(TileMagnification).find(mag => mag === value);
+    return magnification as TileMagnification || TileMagnification.LEVEL_0;
+  };
 
 export type Tile = {
     magnification: TileMagnification;

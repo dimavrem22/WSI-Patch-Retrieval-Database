@@ -1,11 +1,12 @@
 import { useState } from "react";
+import { TileMagnification, toTileMagnification} from "../types";
 
 type ControlPanelProps = {
   onImagePathChange: (path: string) => void;
-  onTileSizeChange: (size: string) => void;
+  onTileMagnificationChange: (tileMagnification: TileMagnification) => void;
 };
 
-const ControlPanel: React.FC<ControlPanelProps> = ({ onImagePathChange, onTileSizeChange }) => {
+const ControlPanel: React.FC<ControlPanelProps> = ({ onImagePathChange, onTileMagnificationChange }) => {
   const [imagePath, setImagePath] = useState<string>("");
   const [tileOption, setTileOption] = useState<string>("none");
 
@@ -18,7 +19,7 @@ const ControlPanel: React.FC<ControlPanelProps> = ({ onImagePathChange, onTileSi
   const handleTileChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
     const newTileSize = event.target.value;
     setTileOption(newTileSize);
-    onTileSizeChange(newTileSize);
+    onTileMagnificationChange(toTileMagnification(newTileSize));
   };
 
   return (

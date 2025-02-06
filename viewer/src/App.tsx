@@ -8,8 +8,11 @@ import {
   getResizeHandleElement,
 } from "react-resizable-panels";
 import WSIViewer from "./components/WSIViewer";
+import ControlPanel from "./components/ControlPanel";
+import { TileMagnification } from "./types";
 
 const App = () => {
+  const [tileMagnification, setTileMagniifcation] = useState<TileMagnification|null>(null);
   const [imagePath, setImagePath] = useState<string>("");
   const [tileSize, setTileSize] = useState<string>("none");
   const refs = useRef<any>(null);
@@ -32,11 +35,13 @@ const App = () => {
     <div>
        <PanelGroup direction="horizontal">
       <Panel defaultSize={20} minSize={20}>
-        Left Panel
+        <ControlPanel onImagePathChange={function (path: string): void {
+            throw new Error("Function not implemented.");
+          } } onTileMagnificationChange={setTileMagniifcation}/>
       </Panel>
       <PanelResizeHandle className="resize-handle" />
       <Panel minSize={30}>
-        <WSIViewer/>
+        <WSIViewer tileMagnification={tileMagnification}/>
       </Panel>
       <PanelResizeHandle className="resize-handle" />
       <Panel defaultSize={20} minSize={0}>

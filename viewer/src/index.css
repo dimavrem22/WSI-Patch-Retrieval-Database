@@ -128,5 +128,6 @@ button:focus-visible {
   font-size: 14px;
   font-family: monospace;
   white-space: nowrap;
-  display: block; /* Always visible, but updates dynamically */
+  display: none; /* ✅ Initially hidden to avoid extra whitespace */
 }
+
