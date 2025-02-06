@@ -44,7 +44,7 @@ def get_metadata() -> Dict:
 
     # first layer with more than 1 tile in each x and y axes
     min_layer = np.where((level_tiles[:, 0] > 1) & (level_tiles[:, 1] > 1))[0][0]
-    min_zoom = int(deepzoom.level_count - min_layer - 2)
+    min_zoom = int(deepzoom.level_count - min_layer)
 
 
     resolutions = [2**i for i in range(deepzoom.level_count)][::-1]

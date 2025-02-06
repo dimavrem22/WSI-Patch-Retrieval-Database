@@ -24,10 +24,11 @@ a:hover {
 
 body {
   margin: 0;
-  display: flex;
-  place-items: center;
   min-width: 320px;
   min-height: 100vh;
+
+  /* Remove flex center, use normal flow */
+  display: block;
 }
 
 h1 {
@@ -67,16 +68,65 @@ button:focus-visible {
   }
 }
 
+/* Fix .wsi-viewer so it doesn't break layout */
+
 .wsi-viewer {
-  width: 95vw;  /* Full viewport width */
-  height: 95vh;  /* Full viewport height */
-  min-width: 500px; /* Ensure it's never collapsed */
-  min-height: 500px; /* Prevent zero height */
-  position: relative; /* Required for OpenLayers */
-  display: block; /* Ensures it takes up space */
-  background: #222; /* Just to visually confirm it's loading */
+  padding: 2px;
+  height: 95vh;
+  min-width: 500px;
+  min-height: 500px;
+  position: relative;
+  display: flex; /* Keep it flexible */
+  background: #222;
+  /* overflow: hidden; Prevent weird scrolling */
 }
 .wsi-viewer.loading {
   min-width: 500px;
   min-height: 500px;
+}
+
+.container {
+  height: 100vh;
+  display: flex;
+  width: 100%;
+}
+.column {
+  height: 100%;
+}
+.left { background: lightcoral; }
+.middle { background: lightblue; }
+.right { background: lightgreen; }
+
+.controls {
+  display: flex;
+  justify-content: space-around;
+  padding: 10px;
+  background: #eee;
+}
+
+/* Style for the resize handle */
+.resize-handle {
+  width: 6px; /* Adjust width for visibility */
+  background-color: gray; /* Change to your preferred color */
+  cursor: ew-resize; /* Cursor indicates resizing */
+  transition: background-color 0.2s;
+}
+
+/* Change color when hovered */
+.resize-handle:hover {
+  background-color: darkgray;
+}
+
+.mouse-coordinates {
+  position: absolute;
+  bottom: 10px;
+  left: 10px;
+  background: rgba(0, 0, 0, 0.6);
+  color: white;
+  padding: 5px 10px;
+  border-radius: 4px;
+  font-size: 14px;
+  font-family: monospace;
+  white-space: nowrap;
+  display: block; /* Always visible, but updates dynamically */
 }
