@@ -128,6 +128,6 @@ button:focus-visible {
   font-size: 14px;
   font-family: monospace;
   white-space: nowrap;
-  display: none; /* ✅ Initially hidden to avoid extra whitespace */
+  display: none; /* Initially hidden to avoid extra whitespace */
 }
 

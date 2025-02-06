@@ -36,16 +36,16 @@ const ControlPanel: React.FC<ControlPanelProps> = ({ onImagePathChange, onTileMa
       </label>
       <br />
       <label>
-        Tile Size:
+        Tile Magnification:
         <select
           value={tileOption}
           onChange={handleTileChange}
           style={{ marginLeft: "10px", padding: "5px" }}
         >
-          <option value="none">No Tiles</option>
-          <option value="5x">5x Tiles</option>
-          <option value="10x">10x Tiles</option>
-          <option value="20x">20x Tiles</option>
+          <option value="none">None</option>
+          <option value="5x">5x</option>
+          <option value="10x">10x</option>
+          <option value="20x">20x</option>
         </select>
       </label>
     </div>

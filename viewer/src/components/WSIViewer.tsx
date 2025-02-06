@@ -27,6 +27,8 @@ const WSIViewer: React.FC<WSIViewerProps> = ({ tileMagnification }) => {
   const mapInstance = useRef<Map | null>(null);
   const vectorSourceRef = useRef<VectorSource>(new VectorSource());
   const [metadata, setMetadata] = useState<SlideMetadata | null>(null);
+  const vectorLayerRef = useRef<VectorLayer | null>(null);
+  const lastHighlightedFeature = useRef<Feature<Polygon> | null>(null);
 
   useEffect(() => {
     const fetchMetadata = async () => {
@@ -73,11 +75,11 @@ const WSIViewer: React.FC<WSIViewerProps> = ({ tileMagnification }) => {
       source: tileSource,
     });
 
-    // ✅ Create Vector Source for Tiles
+    // Create Vector Source for Tiles
     const vectorSource = new VectorSource();
     vectorSourceRef.current = vectorSource;
 
-    // ✅ Create Tiles as Features
+    // Create Tiles as Features
     metadata.tiles.filter((tile) => {
       return tile.magnification == tileMagnification;
     }).forEach((tile) => {
@@ -117,8 +119,9 @@ const WSIViewer: React.FC<WSIViewerProps> = ({ tileMagnification }) => {
     const vectorLayer = new VectorLayer({
       source: vectorSource,
     });
+    vectorLayerRef.current = vectorLayer;
 
-    // ✅ Restore Old Coordinate Text Box Behavior
+    // Restore Old Coordinate Text Box Behavior
     const mousePositionControl = new MousePosition({
       coordinateFormat: createStringXY(2),
       projection: "EPSG:3857",
@@ -126,7 +129,7 @@ const WSIViewer: React.FC<WSIViewerProps> = ({ tileMagnification }) => {
       target: coordRef.current,
     });
 
-    // ✅ Create OpenLayers Map (Disable Double-Click Zoom)
+    // Create OpenLayers Map (Disable Double-Click Zoom)
     mapInstance.current = new Map({
       target: mapRef.current,
       layers: [tileLayer, vectorLayer],
@@ -147,7 +150,7 @@ const WSIViewer: React.FC<WSIViewerProps> = ({ tileMagnification }) => {
       }),
     });
 
-    // ✅ Update Coordinate Text Box on Mouse Move
+    // Update Coordinate Text Box on Mouse Move
     mapRef.current.addEventListener("pointermove", (event) => {
       const map = mapInstance.current;
       if (map) {
@@ -158,14 +161,14 @@ const WSIViewer: React.FC<WSIViewerProps> = ({ tileMagnification }) => {
       }
     });
 
-    // ✅ Reset Text Box on Mouse Leave
+    // Reset Text Box on Mouse Leave
     mapRef.current.addEventListener("mouseleave", () => {
       if (coordRef.current) {
-        coordRef.current.innerText = "X: -, Y: -".trim(); // ✅ Trim to prevent extra lines
+        coordRef.current.innerText = "X: -, Y: -".trim(); // Trim to prevent extra lines
       }
     });
 
-    // ✅ Click Event to Highlight Tile
+    // Click Event to Highlight Tile
     mapInstance.current.on("singleclick", (event) => {
       const clickedCoords = event.coordinate;
       console.log(`Clicked at: X: ${clickedCoords[0].toFixed(2)}, Y: ${clickedCoords[1].toFixed(2)}`);
@@ -193,7 +196,7 @@ const WSIViewer: React.FC<WSIViewerProps> = ({ tileMagnification }) => {
           );
         });
 
-        // ✅ Highlight clicked tile (Yellow Fill)
+        // Highlight clicked tile (Yellow Fill)
         (clickedFeature as Feature<Polygon>).setStyle(
           new Style({
             stroke: new Stroke({
@@ -205,13 +208,68 @@ const WSIViewer: React.FC<WSIViewerProps> = ({ tileMagnification }) => {
             }),
           })
         );
+        lastHighlightedFeature.current = clickedFeature; // Store the newly highlighted tile
+      } else {
+        // Unhighlight the previously selected tile if clicking on empty space
+        if (lastHighlightedFeature.current) {
+          lastHighlightedFeature.current.setStyle(
+            new Style({
+              stroke: new Stroke({ color: "red", width: 2 }), // Revert to default style
+            })
+          );
+          lastHighlightedFeature.current = null; // Clear reference
+        }
+      
       }
     });
 
     return () => {
       mapInstance.current?.setTarget(undefined);
     };
-  }, [metadata, tileMagnification]);
+  }, [metadata]);
+
+  useEffect(() => {
+    if (!metadata || !vectorSourceRef.current) return;
+
+    console.log("Updating polygons for magnification:", tileMagnification);
+
+    const vectorSource = vectorSourceRef.current;
+    vectorSource.clear(); // Remove old polygonsa
+
+    metadata.tiles
+      .filter((tile) => tile.magnification === tileMagnification)
+      .forEach((tile) => {
+        const x = metadata.extent[0] + tile.x;
+        const y = metadata.extent[3] - tile.y - tile.size;
+        const sizeX = tile.size * 1;
+        const sizeY = tile.size * 1;
+
+        const tilePolygon = new Polygon([
+          [
+            [x, y],
+            [x + sizeX, y],
+            [x + sizeX, y + sizeY],
+            [x, y + sizeY],
+            [x, y],
+          ],
+        ]);
+
+        const tileFeature = new Feature({ geometry: tilePolygon });
+
+        // Default Tile Style (Red Outline, No Fill)
+        tileFeature.setStyle(
+          new Style({
+            stroke: new Stroke({ color: "red", width: 2 }),
+          })
+        );
+
+        vectorSource.addFeature(tileFeature);
+      });
+
+    if (vectorLayerRef.current) {
+      vectorLayerRef.current.setSource(vectorSource); // Reapply updated source
+    }
+  }, [tileMagnification, metadata]);
 
   if (!metadata) {
     return <div>Loading metadata...</div>;
@@ -220,7 +278,7 @@ const WSIViewer: React.FC<WSIViewerProps> = ({ tileMagnification }) => {
   return (
     <div className="map-container">
     <div ref={mapRef} className="wsi-viewer" />
-    <div ref={coordRef} className="mouse-coordinates"></div> {/* ✅ Start empty to avoid whitespace issues */}
+    <div ref={coordRef} className="mouse-coordinates"></div> {/* Start empty to avoid whitespace issues */}
   </div>
   );
 };

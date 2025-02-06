@@ -22,15 +22,27 @@ app.add_middleware(
 )
 
 # Load whole-slide image (Modify path accordingly)
-WSI_PATH = "../TEST/test_2.svs"  # Change this to your WSI file path
+WSI_PATH = "../TEST/kidney.svs"  # Change this to your WSI file path
 slide = openslide.OpenSlide(WSI_PATH)
 
 # Load Coordinates
-COORDS_PATH = '../TEST/coords_5x.json'
+COORDS_PATH = '../TEST/kidney_5x.json'
 with open(COORDS_PATH, "r") as f:
     coordinates_data = json.load(f)
-    coordinates = coordinates_data['coordinates']
-    patch_size = coordinates_data['patch_size'][0]
+    coordinates_5x = coordinates_data['coordinates']
+    patch_size_5x = coordinates_data['patch_size'][0]
+
+COORDS_PATH = '../TEST/kidney_10x.json'
+with open(COORDS_PATH, "r") as f:
+    coordinates_data = json.load(f)
+    coordinates_10x = coordinates_data['coordinates']
+    patch_size_10x = coordinates_data['patch_size'][0]
+
+COORDS_PATH = '../TEST/kidney_20x.json'
+with open(COORDS_PATH, "r") as f:
+    coordinates_data = json.load(f)
+    coordinates_20x = coordinates_data['coordinates']
+    patch_size_20x = coordinates_data['patch_size'][0]
 
 # Initialize DeepZoomGenerator
 deepzoom = DeepZoomGenerator(slide, tile_size=256, overlap=0, limit_bounds=False)
@@ -62,10 +74,24 @@ def get_metadata() -> Dict:
         "resolutions": resolutions,
         "tiles": [{
             "magnification": "5x",
-            "size": [patch_size],
+            "size": [patch_size_5x],
             "x": c[0],
             "y": c[1],
-        } for c in coordinates]
+        } for c in coordinates_5x] + [
+            {
+            "magnification": "10x",
+            "size": [patch_size_10x],
+            "x": c[0],
+            "y": c[1],
+        } for c in coordinates_10x
+        ] + [
+            {
+            "magnification": "20x",
+            "size": [patch_size_20x],
+            "x": c[0],
+            "y": c[1],
+        } for c in coordinates_20x
+        ]
     }
 
 
