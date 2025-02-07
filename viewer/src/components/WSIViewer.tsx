@@ -11,8 +11,6 @@ import { Polygon } from "ol/geom";
 import { Style, Stroke, Fill } from "ol/style";
 import { defaults as defaultControls } from "ol/control";
 import { defaults as defaultInteractions } from "ol/interaction";
-import MousePosition from "ol/control/MousePosition";
-import { createStringXY } from "ol/coordinate";
 import { SlideMetadata, TileMagnification } from "../types";
 import "ol/ol.css";
 
@@ -82,7 +80,7 @@ const WSIViewer: React.FC<WSIViewerProps> = ({ tileMagnification }) => {
     // Create Tiles as Features
     metadata.tiles.filter((tile) => {
       return tile.magnification == tileMagnification;
-    }).forEach((tile) => {
+    }).forEach((tile, tileIndex) => {
       const x = metadata.extent[0] + tile.x;
       const y = metadata.extent[3] - tile.y - tile.size;
       const sizeX = tile.size * scaleX;
@@ -100,6 +98,7 @@ const WSIViewer: React.FC<WSIViewerProps> = ({ tileMagnification }) => {
 
       const tileFeature = new Feature({
         geometry: tilePolygon,
+        name: `Tile: ${tileIndex}`,
       });
 
       // Default Tile Style (Red Outline, No Fill)
@@ -121,20 +120,11 @@ const WSIViewer: React.FC<WSIViewerProps> = ({ tileMagnification }) => {
     });
     vectorLayerRef.current = vectorLayer;
 
-    // Restore Old Coordinate Text Box Behavior
-    const mousePositionControl = new MousePosition({
-      coordinateFormat: createStringXY(2),
-      projection: "EPSG:3857",
-      className: "mouse-position",
-      target: coordRef.current,
-    });
-
     // Create OpenLayers Map (Disable Double-Click Zoom)
     mapInstance.current = new Map({
       target: mapRef.current,
       layers: [tileLayer, vectorLayer],
       controls: defaultControls({ zoom: false, rotate: false }).extend([
-        mousePositionControl,
       ]),
       interactions: defaultInteractions({ doubleClickZoom: false }),
       view: new View({
@@ -150,24 +140,6 @@ const WSIViewer: React.FC<WSIViewerProps> = ({ tileMagnification }) => {
       }),
     });
 
-    // Update Coordinate Text Box on Mouse Move
-    mapRef.current.addEventListener("pointermove", (event) => {
-      const map = mapInstance.current;
-      if (map) {
-        const coords = map.getEventCoordinate(event);
-        if (coordRef.current) {
-          coordRef.current.innerText = `X: ${coords[0].toFixed(2)}, Y: ${coords[1].toFixed(2)}`;
-        }
-      }
-    });
-
-    // Reset Text Box on Mouse Leave
-    mapRef.current.addEventListener("mouseleave", () => {
-      if (coordRef.current) {
-        coordRef.current.innerText = "X: -, Y: -".trim(); // Trim to prevent extra lines
-      }
-    });
-
     // Click Event to Highlight Tile
     mapInstance.current.on("singleclick", (event) => {
       const clickedCoords = event.coordinate;
@@ -175,10 +147,14 @@ const WSIViewer: React.FC<WSIViewerProps> = ({ tileMagnification }) => {
 
       // Find the clicked tile
       let clickedFeature: Feature<Polygon> | null = null;
-      vectorSource.forEachFeature((feature) => {
-        if (feature.getGeometry()?.intersectsCoordinate(clickedCoords)) {
-          clickedFeature = feature as Feature<Polygon>;
-        }
+        vectorSource.forEachFeature((feature) => {
+          if (feature.getGeometry()?.intersectsCoordinate(clickedCoords)) {
+            clickedFeature = feature as Feature<Polygon>;
+            console.log(clickedFeature);
+            console.log('clicked tile name: ' + clickedFeature.get('name')); // Fix: Use get() method
+            console.log("Clicked Feature Properties:", clickedFeature.getProperties()); // ✅ Logs all properties
+console.log("Tile Name:", clickedFeature.get("name") || "Not Found!"); // ✅ Checks if it's undefined
+          }
       });
 
       if (clickedFeature) {
@@ -234,11 +210,11 @@ const WSIViewer: React.FC<WSIViewerProps> = ({ tileMagnification }) => {
     console.log("Updating polygons for magnification:", tileMagnification);
 
     const vectorSource = vectorSourceRef.current;
-    vectorSource.clear(); // Remove old polygonsa
+    vectorSource.clear(); // Remove old polygons
 
     metadata.tiles
       .filter((tile) => tile.magnification === tileMagnification)
-      .forEach((tile) => {
+      .forEach((tile, tileIndex) => {
         const x = metadata.extent[0] + tile.x;
         const y = metadata.extent[3] - tile.y - tile.size;
         const sizeX = tile.size * 1;
@@ -254,7 +230,11 @@ const WSIViewer: React.FC<WSIViewerProps> = ({ tileMagnification }) => {
           ],
         ]);
 
-        const tileFeature = new Feature({ geometry: tilePolygon });
+        const tileFeature = new Feature(
+          { geometry: tilePolygon,
+            name: `tile_${tileIndex}`,
+          }
+        );
 
         // Default Tile Style (Red Outline, No Fill)
         tileFeature.setStyle(

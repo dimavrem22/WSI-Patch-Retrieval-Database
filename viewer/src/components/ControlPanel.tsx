@@ -33,6 +33,7 @@ const ControlPanel: React.FC<ControlPanelProps> = ({ onImagePathChange, onTileMa
           placeholder="Enter image path"
           style={{ marginLeft: "10px", padding: "5px", width: "200px" }}
         />
+        <button>🔍</button>
       </label>
       <br />
       <label>
