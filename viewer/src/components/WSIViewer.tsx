@@ -19,7 +19,7 @@ interface WSIViewerProps {
   sampleID: string;
 }
 
-const WSIViewer: React.FC<WSIViewerProps> = ({ tileMagnification }) => {
+const WSIViewer: React.FC<WSIViewerProps> = ({ tileMagnification, sampleID}) => {
   console.log("Tile Magnification:", tileMagnification);
   const mapRef = useRef<HTMLDivElement>(null);
   const coordRef = useRef<HTMLDivElement>(null);
@@ -32,7 +32,7 @@ const WSIViewer: React.FC<WSIViewerProps> = ({ tileMagnification }) => {
   useEffect(() => {
     const fetchMetadata = async () => {
       try {
-        const response = await fetch("http://localhost:8000/metadata/");
+        const response = await fetch(`http://localhost:8000/metadata/?sample_id=${sampleID}`);
         if (!response.ok) {
           throw new Error("Failed to fetch metadata");
         }
@@ -44,7 +44,7 @@ const WSIViewer: React.FC<WSIViewerProps> = ({ tileMagnification }) => {
     };
 
     fetchMetadata();
-  }, []);
+  }, [sampleID]);
 
   useEffect(() => {
     if (!mapRef.current || !metadata || !coordRef.current) return;
@@ -64,7 +64,7 @@ const WSIViewer: React.FC<WSIViewerProps> = ({ tileMagnification }) => {
 
     // Tile Source Setup
     const tileSource = new XYZ({
-      url: `http://localhost:8000/tiles/{z}/{x}/{y}`,
+      url: `http://localhost:8000/tiles/{z}/{x}/{y}/?sample_id=${sampleID}`,
       crossOrigin: "anonymous",
       tileGrid: slideGrid,
     });
@@ -203,7 +203,7 @@ console.log("Tile Name:", clickedFeature.get("name") || "Not Found!"); // ✅ Ch
     return () => {
       mapInstance.current?.setTarget(undefined);
     };
-  }, [metadata]);
+  }, [metadata, sampleID]);
 
   useEffect(() => {
     if (!metadata || !vectorSourceRef.current) return;
@@ -250,7 +250,7 @@ console.log("Tile Name:", clickedFeature.get("name") || "Not Found!"); // ✅ Ch
     if (vectorLayerRef.current) {
       vectorLayerRef.current.setSource(vectorSource); // Reapply updated source
     }
-  }, [tileMagnification, metadata]);
+  }, [tileMagnification, metadata, sampleID]);
 
   if (!metadata) {
     return <div>Loading metadata...</div>;
