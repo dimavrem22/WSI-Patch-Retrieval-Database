@@ -1,3 +1,4 @@
+from functools import lru_cache
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 import openslide
@@ -21,9 +22,13 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Load whole-slide image (Modify path accordingly)
-WSI_PATH = "../TEST/kidney.svs"  # Change this to your WSI file path
-slide = openslide.OpenSlide(WSI_PATH)
+DATA_DIR_PATH = "../TEST/data_directory.json"
+with open(DATA_DIR_PATH, "r") as f:
+    DATA_DIR = json.load(f)
+
+# # Load whole-slide image (Modify path accordingly)
+# WSI_PATH = "../TEST/kidney.svs"  # Change this to your WSI file path
+# slide = openslide.OpenSlide(WSI_PATH)
 
 # Load Coordinates
 COORDS_PATH = '../TEST/kidney_5x.json'
@@ -44,11 +49,26 @@ with open(COORDS_PATH, "r") as f:
     coordinates_20x = coordinates_data['coordinates']
     patch_size_20x = coordinates_data['patch_size'][0]
 
-# Initialize DeepZoomGenerator
-deepzoom = DeepZoomGenerator(slide, tile_size=256, overlap=0, limit_bounds=False)
+
+@lru_cache(maxsize=1)
+def get_active_slide(sample_id: str) -> Tuple[openslide.OpenSlide, DeepZoomGenerator]:
+    slide = openslide.OpenSlide(DATA_DIR[sample_id]['wsi_path'])
+    deepzoom = DeepZoomGenerator(slide, tile_size=256, overlap=0, limit_bounds=False)
+    return slide, deepzoom
+
+
+@app.get("/load_wsi/")
+def load_wsi(sample_id: str) -> bool:
+    if sample_id not in DATA_DIR:
+        return False
+    get_active_slide(sample_id)
+    return True
+    
 
 @app.get("/metadata/")
-def get_metadata() -> Dict:
+def get_metadata(sample_id: str) -> Dict:
+
+    slide, deepzoom = get_active_slide(sample_id=sample_id)
 
     # dimentions of the lowest resolution
     extent = deepzoom.level_dimensions[-1]
@@ -96,13 +116,14 @@ def get_metadata() -> Dict:
 
 
 @app.get("/tiles/{z}/{x}/{y}")
-def get_tile(z: int, x: int, y: int):
+def get_tile(sample_id: str, z: int, x: int, y: int):
     """
     Fetch a tile using DeepZoom.
     - z: DeepZoom level (0 = most zoomed-out, max = highest resolution)
     - x, y: Tile coordinates in DeepZoom format
     """
 
+    _, deepzoom = get_active_slide(sample_id=sample_id)
 
     try:
         tile = deepzoom.get_tile(z, (x, y))

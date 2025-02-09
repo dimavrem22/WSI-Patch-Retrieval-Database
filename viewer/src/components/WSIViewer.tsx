@@ -16,6 +16,7 @@ import "ol/ol.css";
 
 interface WSIViewerProps {
   tileMagnification: TileMagnification | null;
+  sampleID: string;
 }
 
 const WSIViewer: React.FC<WSIViewerProps> = ({ tileMagnification }) => {

@@ -12,10 +12,34 @@ import ControlPanel from "./components/ControlPanel";
 import { TileMagnification } from "./types";
 
 const App = () => {
-  const [tileMagnification, setTileMagniifcation] = useState<TileMagnification|null>(null);
-  const [imagePath, setImagePath] = useState<string>("");
-  const [tileSize, setTileSize] = useState<string>("none");
+  const [tileMagnification, setTileMagnification] = useState<TileMagnification | null>(null);
+  const [sampleID, setSampleID] = useState<string | null>(null);
+  const [showPopup, setShowPopup] = useState(false);
   const refs = useRef<any>(null);
+
+  useEffect(() => {
+    if (!sampleID) return;
+
+    console.log("We have a new sample ID: ", sampleID);
+
+    const loadWSI = async () => {
+      
+        try {
+            const response = await fetch(`http://localhost:8000/load_wsi/?sample_id=${sampleID}`);
+            const result = await response.json();
+            console.log("RESULT OF THE LOADING: ", result);
+
+            if (!result) {
+                setShowPopup(true);
+            } else {
+                setShowPopup(false); // Close popup if successful
+            }
+        } catch (err) {
+            setShowPopup(true);
+        }
+    };
+    loadWSI();
+}, [sampleID]);
 
   useEffect(() => {
     const groupElement = getPanelGroupElement("group");
@@ -32,24 +56,30 @@ const App = () => {
   }, []);
 
   return (
-    <div>
-       <PanelGroup direction="horizontal">
-      <Panel defaultSize={20} minSize={20}>
-        <ControlPanel onImagePathChange={function (path: string): void {
-            throw new Error("Function not implemented.");
-          } } onTileMagnificationChange={setTileMagniifcation}/>
-      </Panel>
-      <PanelResizeHandle className="resize-handle" />
-      <Panel minSize={30}>
-        <WSIViewer tileMagnification={tileMagnification}/>
-      </Panel>
-      <PanelResizeHandle className="resize-handle" />
-      <Panel defaultSize={20} minSize={0}>
-        Right Panel
-      </Panel>
-    </PanelGroup>
+    <div className="h-screen w-screen flex">
+      <PanelGroup direction="horizontal" className="flex-1 h-full">
+        <Panel defaultSize={20} minSize={20} className="h-full">
+          <ControlPanel 
+            onSampleIdChange={setSampleID} 
+            onTileMagnificationChange={setTileMagnification}
+          />
+        </Panel>
+        <PanelResizeHandle className="resize-handle" />
+        <Panel minSize={30} className="h-full flex-1">
+          {sampleID ? (
+            <WSIViewer tileMagnification={tileMagnification} sampleID={sampleID}/>
+          ) : (
+            <div className="flex items-center justify-center h-full text-gray-500">
+              Please search for a sample to display the viewer.
+            </div>
+          )}
+        </Panel>
+        <PanelResizeHandle className="resize-handle" />
+        <Panel defaultSize={20} minSize={0} className="h-full">
+          Right Panel
+        </Panel>
+      </PanelGroup>
     </div>
-   
   );
 };
 

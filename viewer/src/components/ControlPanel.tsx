@@ -2,18 +2,22 @@ import { useState } from "react";
 import { TileMagnification, toTileMagnification} from "../types";
 
 type ControlPanelProps = {
-  onImagePathChange: (path: string) => void;
+  onSampleIdChange: (smapleId: string) => void;
   onTileMagnificationChange: (tileMagnification: TileMagnification) => void;
 };
 
-const ControlPanel: React.FC<ControlPanelProps> = ({ onImagePathChange, onTileMagnificationChange }) => {
-  const [imagePath, setImagePath] = useState<string>("");
+const ControlPanel: React.FC<ControlPanelProps> = (
+  { 
+    onSampleIdChange,
+    onTileMagnificationChange
+  }
+) => {
+  const [sampleID, setSampleId] = useState<string>("");
   const [tileOption, setTileOption] = useState<string>("none");
 
-  const handlePathChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const newPath = event.target.value;
-    setImagePath(newPath);
-    onImagePathChange(newPath);
+  const handleSampleIdChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const newSampleId = event.target.value;
+    setSampleId(newSampleId);
   };
 
   const handleTileChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
@@ -25,15 +29,15 @@ const ControlPanel: React.FC<ControlPanelProps> = ({ onImagePathChange, onTileMa
   return (
     <div className="control-panel" style={{ padding: "10px", border: "1px solid #ccc" }}>
       <label>
-        Image Path:
+        Sample:
         <input
           type="text"
-          value={imagePath}
-          onChange={handlePathChange}
-          placeholder="Enter image path"
-          style={{ marginLeft: "10px", padding: "5px", width: "200px" }}
+          value={sampleID}
+          onChange={handleSampleIdChange}
+          placeholder="Enter sample id:"
+          style={{ marginLeft: "10px", padding: "5px", width: "100px" }}
         />
-        <button>🔍</button>
+        <button onClick={() => onSampleIdChange(sampleID)}>🔍</button>
       </label>
       <br />
       <label>
