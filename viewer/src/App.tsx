@@ -9,12 +9,34 @@ import {
 } from "react-resizable-panels";
 import WSIViewer from "./components/WSIViewer";
 import ControlPanel from "./components/ControlPanel";
-import { TileMagnification } from "./types";
+import QueryResults from "./components/QueryResults";
+import { Tile, TileMagnification } from "./types";
+import TileComponent from "./components/TileComponent";
 
 const App = () => {
   const [tileMagnification, setTileMagnification] = useState<TileMagnification | null>(null);
   const [sampleID, setSampleID] = useState<string | null>(null);
+  const [selectedTileUuid, setSelectedTileUuid] = useState<string | null>(null);
+  const [selectedTile, setSelectedTile] = useState<Tile | null>(null);
+  const [queryResults, setQueryResults] = useState<Tile[] | null>(null);
   const refs = useRef<any>(null);
+  
+  const querySimilarTiles = async () => {
+    try {
+      const response = await fetch(
+        `http://localhost:8000/query_similar_tiles/?tile_uuid=${selectedTileUuid}`
+      );
+      if (!response.ok) {
+        throw new Error("Failed to fetch similar tiles");
+      }
+      const result = await response.json();
+      console.log("Query result:", result);
+      setQueryResults(result);
+    } catch (error) {
+      console.error("Error querying similar tiles:", error);
+      setQueryResults(null);
+    }
+  };
 
   useEffect(() => {
     if (!sampleID) return;
@@ -27,7 +49,7 @@ const App = () => {
       console.log("RESULT OF THE LOADING: ", result);
     };
     loadWSI();
-}, [sampleID]);
+  }, [sampleID]);
 
   useEffect(() => {
     const groupElement = getPanelGroupElement("group");
@@ -49,16 +71,18 @@ const App = () => {
         <Panel defaultSize={20} minSize={20} className="h-full">
           <ControlPanel 
             onSampleIdChange={setSampleID}
-            onQueryRun={() => {
-              console.log("RUN QUEWRY");
-            }}
+            onQueryRun={querySimilarTiles}
             onTileMagnificationChange={setTileMagnification}
           />
         </Panel>
         <PanelResizeHandle className="resize-handle" />
         <Panel minSize={30} className="h-full flex-1">
           {sampleID ? (
-            <WSIViewer tileMagnification={tileMagnification} sampleID={sampleID}/>
+            <WSIViewer 
+              tileMagnification={tileMagnification} 
+              sampleID={sampleID}
+              onSelectedTileChange={setSelectedTile}
+            />
           ) : (
             <div className="flex items-center justify-center h-full text-gray-500">
               Please search for a sample to display the viewer.
@@ -66,8 +90,18 @@ const App = () => {
           )}
         </Panel>
         <PanelResizeHandle className="resize-handle" />
-        <Panel defaultSize={20} minSize={0} className="h-full">
-          Right Panel
+        <Panel defaultSize={queryResults ? 20 : 0} minSize={queryResults ? 20 : 0} className="h-full" hidden={!queryResults}>
+          {queryResults && (
+            <QueryResults queryTile={{
+                "magnification": TileMagnification.LEVEL_1,
+                "uuid": "kidney",
+                "size": 256,
+                "x": 2000,
+                "y": 2000,
+              }}
+              resultTiles={queryResults}
+            />
+          )}
         </Panel>
       </PanelGroup>
     </div>

@@ -6,12 +6,21 @@ export enum TileMagnification {
     LEVEL_3 = "20x",
 };
 
+
+export enum Stains {
+  HE = "H&E",
+  PAS = "PAS",
+  TRI = "TRI",
+  SIL = "SIL",
+};
+
 export const toTileMagnification = (value: string): TileMagnification => {
     const magnification = Object.values(TileMagnification).find(mag => mag === value);
     return magnification as TileMagnification || TileMagnification.LEVEL_0;
   };
 
 export type Tile = {
+    uuid: string;
     magnification: TileMagnification;
     x: number;
     y: number;

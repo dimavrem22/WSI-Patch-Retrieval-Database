@@ -92,9 +92,6 @@ button:focus-visible {
 .column {
   height: 100%;
 }
-.left { background: lightcoral; }
-.middle { background: lightblue; }
-.right { background: lightgreen; }
 
 .controls {
   display: flex;
@@ -131,3 +128,71 @@ button:focus-visible {
   display: none; /* Initially hidden to avoid extra whitespace */
 }
 
+
+.tile-container {
+  position: relative;
+  width: 256px;
+  height: 256px;
+}
+
+.tile-image {
+  width: 100%;
+  height: 100%;
+}
+
+.tile-info {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: rgba(0, 0, 0, 0.75);
+  color: white;
+  font-size: 12px;
+  padding: 5px;
+  opacity: 0;
+  transition: opacity 0.3s ease-in-out;
+}
+
+.tile-container:hover .tile-info {
+  opacity: 1;
+}
+
+.query-results-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.query-image-container {
+  width: 100%;
+  text-align: center;
+  margin-bottom: 16px;
+  
+}
+
+.query-image {
+  max-width: 100%;
+  height: auto;
+  border-radius: 8px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.hits-count {
+  font-size: 18px;
+  font-weight: bold;
+  margin-top: 8px;
+}
+
+.tiles-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  max-height: 500px;
+  overflow-y: auto;
+  justify-content: center;
+  width: 100%;
+  padding: 10px;
+}

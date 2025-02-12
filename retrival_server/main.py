@@ -73,7 +73,7 @@ def get_metadata(sample_id: str) -> Dict:
     }
 
 
-@app.get("/tiles/{z}/{x}/{y}")
+@app.get("/tiles/{z}/{x}/{y}/")
 def get_tile(sample_id: str, z: int, x: int, y: int) -> StreamingResponse:
     """
     Fetch a tile using DeepZoom.
@@ -110,6 +110,8 @@ def query_similar_tiles(
     max_hits: int = 5,
     min_score: float | None = None,
 ) -> List:
+
+    print(f"running similarity query for tile id: {tile_uuid}")
     
     # search for tile in the database
     
@@ -117,10 +119,21 @@ def query_similar_tiles(
 
     # run query search!
 
-    return []
+    test_results = [
+    {
+            "magnification": "10x",
+            "uuid": "kidney",
+            "size": 256,
+            "x": 2000,
+            "y": 2000,
+        }
+    ] * 10
+
+    return test_results
 
 def get_tiles_info(sample_id: str) -> List[Dict]:
     tiles_list = []
+    tile_idx = 0
     for tiles_set in DATA_DIR[sample_id]['tiles']:
         with open(tiles_set['coordinates_path'], "r") as f:
             coordinates_data = json.load(f)
@@ -128,11 +141,14 @@ def get_tiles_info(sample_id: str) -> List[Dict]:
             patch_size = coordinates_data['patch_size'][0]
         for c in coordinates:
             tiles_list.append({
+            "uuid": f"tile_{tile_idx}",
             "magnification": tiles_set['magnification'],
             "size": [patch_size], 
             "x": c[0],
             "y": c[1],
+            "stains": "H&E"
         })
+            tile_idx += 1
             
     return tiles_list
 

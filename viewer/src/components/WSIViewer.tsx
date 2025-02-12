@@ -81,7 +81,7 @@ const WSIViewer: React.FC<WSIViewerProps> = ({ tileMagnification, sampleID}) => 
     // Create Tiles as Features
     metadata.tiles.filter((tile) => {
       return tile.magnification == tileMagnification;
-    }).forEach((tile, tileIndex) => {
+    }).forEach((tile) => {
       const x = metadata.extent[0] + tile.x;
       const y = metadata.extent[3] - tile.y - tile.size;
       const sizeX = tile.size * scaleX;
@@ -99,7 +99,7 @@ const WSIViewer: React.FC<WSIViewerProps> = ({ tileMagnification, sampleID}) => 
 
       const tileFeature = new Feature({
         geometry: tilePolygon,
-        name: `Tile: ${tileIndex}`,
+        name: tile.uuid,
       });
 
       // Default Tile Style (Red Outline, No Fill)
@@ -215,7 +215,7 @@ console.log("Tile Name:", clickedFeature.get("name") || "Not Found!"); // ✅ Ch
 
     metadata.tiles
       .filter((tile) => tile.magnification === tileMagnification)
-      .forEach((tile, tileIndex) => {
+      .forEach((tile) => {
         const x = metadata.extent[0] + tile.x;
         const y = metadata.extent[3] - tile.y - tile.size;
         const sizeX = tile.size * 1;
@@ -233,7 +233,7 @@ console.log("Tile Name:", clickedFeature.get("name") || "Not Found!"); // ✅ Ch
 
         const tileFeature = new Feature(
           { geometry: tilePolygon,
-            name: `tile_${tileIndex}`,
+            name: tile.uuid,
           }
         );
 
