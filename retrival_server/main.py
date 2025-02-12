@@ -27,24 +27,6 @@ with open(DATA_DIR_PATH, "r") as f:
     DATA_DIR = json.load(f)
 
 
-def get_tiles(sample_id: str) -> List[Dict]:
-    tiles_list = []
-    for tiles_set in DATA_DIR[sample_id]['tiles']:
-        with open(tiles_set['coordinates_path'], "r") as f:
-            coordinates_data = json.load(f)
-            coordinates = coordinates_data['coordinates']
-            patch_size = coordinates_data['patch_size'][0]
-        for c in coordinates:
-            tiles_list.append({
-            "magnification": tiles_set['magnification'],
-            "size": [patch_size], 
-            "x": c[0],
-            "y": c[1],
-        })
-            
-    return tiles_list
-
-
 @lru_cache(maxsize=1)
 def get_active_slide(sample_id: str) -> Tuple[openslide.OpenSlide, DeepZoomGenerator]:
     slide = openslide.OpenSlide(DATA_DIR[sample_id]['wsi_path'])
@@ -63,6 +45,7 @@ def load_wsi(sample_id: str) -> bool:
 @app.get("/metadata/")
 def get_metadata(sample_id: str) -> Dict:
 
+    # load slide (possibly already in memmory)
     slide, deepzoom = get_active_slide(sample_id=sample_id)
 
     # dimentions of the lowest resolution
@@ -72,7 +55,6 @@ def get_metadata(sample_id: str) -> Dict:
     # first layer with more than 1 tile in each x and y axes
     min_layer = np.where((level_tiles[:, 0] > 1) & (level_tiles[:, 1] > 1))[0][0]
     min_zoom = int(deepzoom.level_count - min_layer)
-
 
     resolutions = [2**i for i in range(deepzoom.level_count)][::-1]
 
@@ -87,12 +69,12 @@ def get_metadata(sample_id: str) -> Dict:
         "mpp_x": float(slide.properties.get("openslide.mpp-x", "0")),
         "mpp_y": float(slide.properties.get("openslide.mpp-y", "0")),
         "resolutions": resolutions,
-        "tiles": get_tiles(sample_id=sample_id)
+        "tiles": get_tiles_info(sample_id=sample_id)
     }
 
 
 @app.get("/tiles/{z}/{x}/{y}")
-def get_tile(sample_id: str, z: int, x: int, y: int):
+def get_tile(sample_id: str, z: int, x: int, y: int) -> StreamingResponse:
     """
     Fetch a tile using DeepZoom.
     - z: DeepZoom level (0 = most zoomed-out, max = highest resolution)
@@ -109,11 +91,50 @@ def get_tile(sample_id: str, z: int, x: int, y: int):
             )
     except ValueError:
         tile = Image.new("RGB", (256, 256), (255, 255, 255))
-    tile = tile.convert("RGB")
-    img_byte_array = io.BytesIO()
-    tile.save(img_byte_array, format="JPEG")
-    img_byte_array.seek(0)
-    return StreamingResponse(content=img_byte_array, media_type="image/jpeg")
+    return stream_tile(tile)
+
+@app.get("/tile_image/")
+def get_tile_image(sample_id: str, x: int, y: int, size: int) -> StreamingResponse:
+    wsi_path = DATA_DIR[sample_id]['wsi_path']
+    slide = openslide.OpenSlide(filename=wsi_path)
+    tile = slide.read_region(location=(x, y), level=0, size=[size, size])
+    return stream_tile(tile)
+
+@app.get("/query_similar_tiles/")
+def query_similar_tiles(
+    tile_uuid: str,
+    same_pt: bool|None = None,
+    same_wsi: bool|None = None,
+    same_dataset: bool|None = None,
+    same_magnification: bool|None = None,
+    max_hits: int = 5,
+    min_score: float | None = None,
+) -> List:
+    
+    # search for tile in the database
+    
+    # extract pt, wsi info, mag, dataset
+
+    # run query search!
+
+    return []
+
+def get_tiles_info(sample_id: str) -> List[Dict]:
+    tiles_list = []
+    for tiles_set in DATA_DIR[sample_id]['tiles']:
+        with open(tiles_set['coordinates_path'], "r") as f:
+            coordinates_data = json.load(f)
+            coordinates = coordinates_data['coordinates']
+            patch_size = coordinates_data['patch_size'][0]
+        for c in coordinates:
+            tiles_list.append({
+            "magnification": tiles_set['magnification'],
+            "size": [patch_size], 
+            "x": c[0],
+            "y": c[1],
+        })
+            
+    return tiles_list
 
 
 def resize_and_fill(
@@ -138,3 +159,10 @@ def resize_and_fill(
         new_image.paste(image, (0, 0))
         image = new_image
     return image
+
+def stream_tile(tile: Image) -> StreamingResponse:
+    tile = tile.convert("RGB")
+    img_byte_array = io.BytesIO()
+    tile.save(img_byte_array, format="JPEG")
+    img_byte_array.seek(0)
+    return StreamingResponse(content=img_byte_array, media_type="image/jpeg")

@@ -72,13 +72,12 @@ button:focus-visible {
 
 .wsi-viewer {
   padding: 2px;
-  height: 95vh;
+  height: 99.5vh;
   min-width: 500px;
   min-height: 500px;
   position: relative;
   display: flex; /* Keep it flexible */
   background: #222;
-  /* overflow: hidden; Prevent weird scrolling */
 }
 .wsi-viewer.loading {
   min-width: 500px;
