@@ -14,7 +14,6 @@ import { TileMagnification } from "./types";
 const App = () => {
   const [tileMagnification, setTileMagnification] = useState<TileMagnification | null>(null);
   const [sampleID, setSampleID] = useState<string | null>(null);
-  const [showPopup, setShowPopup] = useState(false);
   const refs = useRef<any>(null);
 
   useEffect(() => {
@@ -23,20 +22,9 @@ const App = () => {
     console.log("We have a new sample ID: ", sampleID);
 
     const loadWSI = async () => {
-      
-        try {
-            const response = await fetch(`http://localhost:8000/load_wsi/?sample_id=${sampleID}`);
-            const result = await response.json();
-            console.log("RESULT OF THE LOADING: ", result);
-
-            if (!result) {
-                setShowPopup(true);
-            } else {
-                setShowPopup(false); // Close popup if successful
-            }
-        } catch (err) {
-            setShowPopup(true);
-        }
+      const response = await fetch(`http://localhost:8000/load_wsi/?sample_id=${sampleID}`);
+      const result = await response.json();
+      console.log("RESULT OF THE LOADING: ", result);
     };
     loadWSI();
 }, [sampleID]);
@@ -60,7 +48,10 @@ const App = () => {
       <PanelGroup direction="horizontal" className="flex-1 h-full">
         <Panel defaultSize={20} minSize={20} className="h-full">
           <ControlPanel 
-            onSampleIdChange={setSampleID} 
+            onSampleIdChange={setSampleID}
+            onQueryRun={() => {
+              console.log("RUN QUEWRY");
+            }}
             onTileMagnificationChange={setTileMagnification}
           />
         </Panel>

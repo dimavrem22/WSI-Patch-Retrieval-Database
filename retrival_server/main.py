@@ -6,7 +6,7 @@ import io
 from PIL import Image
 from openslide.deepzoom import DeepZoomGenerator
 import numpy as np
-from typing import Dict, Tuple
+from typing import Dict, Tuple, List
 from starlette.responses import StreamingResponse
 import json
 
@@ -14,7 +14,7 @@ import json
 app = FastAPI()
 
 # Allow frontend to access backend
-app.add_middleware( 
+app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:5173"], 
     allow_credentials=True,
@@ -26,28 +26,23 @@ DATA_DIR_PATH = "../TEST/data_directory.json"
 with open(DATA_DIR_PATH, "r") as f:
     DATA_DIR = json.load(f)
 
-# # Load whole-slide image (Modify path accordingly)
-# WSI_PATH = "../TEST/kidney.svs"  # Change this to your WSI file path
-# slide = openslide.OpenSlide(WSI_PATH)
 
-# Load Coordinates
-COORDS_PATH = '../TEST/kidney_5x.json'
-with open(COORDS_PATH, "r") as f:
-    coordinates_data = json.load(f)
-    coordinates_5x = coordinates_data['coordinates']
-    patch_size_5x = coordinates_data['patch_size'][0]
-
-COORDS_PATH = '../TEST/kidney_10x.json'
-with open(COORDS_PATH, "r") as f:
-    coordinates_data = json.load(f)
-    coordinates_10x = coordinates_data['coordinates']
-    patch_size_10x = coordinates_data['patch_size'][0]
-
-COORDS_PATH = '../TEST/kidney_20x.json'
-with open(COORDS_PATH, "r") as f:
-    coordinates_data = json.load(f)
-    coordinates_20x = coordinates_data['coordinates']
-    patch_size_20x = coordinates_data['patch_size'][0]
+def get_tiles(sample_id: str) -> List[Dict]:
+    tiles_list = []
+    for tiles_set in DATA_DIR[sample_id]['tiles']:
+        with open(tiles_set['coordinates_path'], "r") as f:
+            coordinates_data = json.load(f)
+            coordinates = coordinates_data['coordinates']
+            patch_size = coordinates_data['patch_size'][0]
+        for c in coordinates:
+            tiles_list.append({
+            "magnification": tiles_set['magnification'],
+            "size": [patch_size], 
+            "x": c[0],
+            "y": c[1],
+        })
+            
+    return tiles_list
 
 
 @lru_cache(maxsize=1)
@@ -92,26 +87,7 @@ def get_metadata(sample_id: str) -> Dict:
         "mpp_x": float(slide.properties.get("openslide.mpp-x", "0")),
         "mpp_y": float(slide.properties.get("openslide.mpp-y", "0")),
         "resolutions": resolutions,
-        "tiles": [{
-            "magnification": "5x",
-            "size": [patch_size_5x],
-            "x": c[0],
-            "y": c[1],
-        } for c in coordinates_5x] + [
-            {
-            "magnification": "10x",
-            "size": [patch_size_10x],
-            "x": c[0],
-            "y": c[1],
-        } for c in coordinates_10x
-        ] + [
-            {
-            "magnification": "20x",
-            "size": [patch_size_20x],
-            "x": c[0],
-            "y": c[1],
-        } for c in coordinates_20x
-        ]
+        "tiles": get_tiles(sample_id=sample_id)
     }
 
 
