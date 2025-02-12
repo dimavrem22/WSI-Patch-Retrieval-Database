@@ -11,15 +11,17 @@ import { Polygon } from "ol/geom";
 import { Style, Stroke, Fill } from "ol/style";
 import { defaults as defaultControls } from "ol/control";
 import { defaults as defaultInteractions } from "ol/interaction";
-import { SlideMetadata, TileMagnification } from "../types";
+import { SlideMetadata, Tile, TileMagnification } from "../types";
 import "ol/ol.css";
 
 interface WSIViewerProps {
+  onSelectedTileChange: (tile: Tile | null) => void;
   tileMagnification: TileMagnification | null;
   sampleID: string;
+  
 }
 
-const WSIViewer: React.FC<WSIViewerProps> = ({ tileMagnification, sampleID}) => {
+const WSIViewer: React.FC<WSIViewerProps> = ({ tileMagnification, sampleID, onSelectedTileChange}) => {
   console.log("Tile Magnification:", tileMagnification);
   const mapRef = useRef<HTMLDivElement>(null);
   const coordRef = useRef<HTMLDivElement>(null);
@@ -148,18 +150,22 @@ const WSIViewer: React.FC<WSIViewerProps> = ({ tileMagnification, sampleID}) => 
 
       // Find the clicked tile
       let clickedFeature: Feature<Polygon> | null = null;
+      let selectedTileUuid: string | null = null;
+
         vectorSource.forEachFeature((feature) => {
           if (feature.getGeometry()?.intersectsCoordinate(clickedCoords)) {
             clickedFeature = feature as Feature<Polygon>;
             console.log(clickedFeature);
-            console.log('clicked tile name: ' + clickedFeature.get('name')); // Fix: Use get() method
-            console.log("Clicked Feature Properties:", clickedFeature.getProperties()); // ✅ Logs all properties
-console.log("Tile Name:", clickedFeature.get("name") || "Not Found!"); // ✅ Checks if it's undefined
+            console.log("Tile Name:", clickedFeature.get("name") || null);
+            selectedTileUuid = clickedFeature.get("name") || null;
           }
       });
 
       if (clickedFeature) {
-        console.log("Tile clicked:", clickedFeature);
+
+        // update the selected tile
+        const selectedTile = metadata.tiles.filter((tile: Tile) => {return tile.uuid == selectedTileUuid;})[0]
+        onSelectedTileChange(selectedTile);
 
         // Remove previous highlights
         vectorSource.forEachFeature((feature) => {
@@ -195,6 +201,7 @@ console.log("Tile Name:", clickedFeature.get("name") || "Not Found!"); // ✅ Ch
             })
           );
           lastHighlightedFeature.current = null; // Clear reference
+          onSelectedTileChange(null);
         }
       
       }

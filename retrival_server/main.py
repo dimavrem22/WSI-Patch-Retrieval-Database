@@ -120,14 +120,15 @@ def query_similar_tiles(
     # run query search!
 
     test_results = [
-    {
+    {       
+            "sampleID": "kidney",
             "magnification": "10x",
             "uuid": "kidney",
-            "size": 256,
-            "x": 2000,
-            "y": 2000,
+            "size": 1000,
+            "x": 6000,
+            "y": 3000,
         }
-    ] * 10
+    ] * 20
 
     return test_results
 
@@ -142,6 +143,7 @@ def get_tiles_info(sample_id: str) -> List[Dict]:
         for c in coordinates:
             tiles_list.append({
             "uuid": f"tile_{tile_idx}",
+            "sampleID": sample_id,
             "magnification": tiles_set['magnification'],
             "size": [patch_size], 
             "x": c[0],

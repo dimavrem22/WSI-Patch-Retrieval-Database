@@ -7,16 +7,16 @@ interface QueryResultsProps {
   resultTiles: Tile[];
 }
 
-const QueryResults: React.FC<QueryResultsProps> = ({queryTile, resultTiles }) => {
+const QueryResults: React.FC<QueryResultsProps> = ({ queryTile, resultTiles }) => {
   return (
     <div className="query-results-container">
-      <div className="query-image-container">
+      <div className="query-image-wrapper">
         <TileComponent tile={queryTile} />
         <p className="hits-count">Hits: {resultTiles.length}</p>
       </div>
       <div className="tiles-container">
-        {resultTiles.map((tile) => (
-          <TileComponent key={tile.uuid} tile={tile} />
+        {resultTiles.map((tile, tile_idx) => (
+          <TileComponent key={tile_idx} tile={tile} />
         ))}
       </div>
     </div>

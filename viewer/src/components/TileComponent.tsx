@@ -13,7 +13,7 @@ const TileComponent: React.FC<TileComponentProps> = ({ tile }) => {
     const fetchTileImage = async () => {
       try {
         const response = await fetch(
-          `http://localhost:8000/tile_image/?sample_id=${tile.uuid}&x=${tile.x}&y=${tile.y}&size=${tile.size}`
+          `http://localhost:8000/tile_image/?sample_id=${tile.sampleID}&x=${tile.x}&y=${tile.y}&size=${tile.size}`
         );
         if (!response.ok) {
           throw new Error("Failed to load tile image");
@@ -35,10 +35,10 @@ const TileComponent: React.FC<TileComponentProps> = ({ tile }) => {
     <div className="tile-container">
       <img src={imageSrc} alt="Tile" className="tile-image" width={256} height={256} />
       <div className="tile-info">
-        <span><strong>UUID:</strong> {tile.uuid}, </span>
-        <span><strong>X:</strong> {tile.x}, </span>
-        <span><strong>Y:</strong> {tile.y}, </span>
-        <span><strong>Size:</strong> {tile.size}</span>
+        <span><strong>WSI:</strong> {tile.sampleID}, </span>
+        <span><strong>Size:</strong> {tile.size}, </span>
+        <span><strong>Mag:</strong> {tile.magnification}</span>
+
       </div>
     </div>
   );

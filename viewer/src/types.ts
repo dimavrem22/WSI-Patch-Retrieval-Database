@@ -21,6 +21,7 @@ export const toTileMagnification = (value: string): TileMagnification => {
 
 export type Tile = {
     uuid: string;
+    sampleID: string;
     magnification: TileMagnification;
     x: number;
     y: number;

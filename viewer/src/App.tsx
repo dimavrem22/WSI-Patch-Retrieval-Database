@@ -16,20 +16,23 @@ import TileComponent from "./components/TileComponent";
 const App = () => {
   const [tileMagnification, setTileMagnification] = useState<TileMagnification | null>(null);
   const [sampleID, setSampleID] = useState<string | null>(null);
-  const [selectedTileUuid, setSelectedTileUuid] = useState<string | null>(null);
   const [selectedTile, setSelectedTile] = useState<Tile | null>(null);
+  const [queryTile, setQueryTile] = useState<Tile | null>(null);
   const [queryResults, setQueryResults] = useState<Tile[] | null>(null);
   const refs = useRef<any>(null);
   
   const querySimilarTiles = async () => {
+    if (!selectedTile) return; // Ensure queryTile is not null before running query
     try {
+      setQueryTile(selectedTile);
       const response = await fetch(
-        `http://localhost:8000/query_similar_tiles/?tile_uuid=${selectedTileUuid}`
+        `http://localhost:8000/query_similar_tiles/?tile_uuid=${sampleID}`
       );
       if (!response.ok) {
         throw new Error("Failed to fetch similar tiles");
       }
       const result = await response.json();
+      console.log("Query for ", selectedTile.uuid);
       console.log("Query result:", result);
       setQueryResults(result);
     } catch (error) {
@@ -90,17 +93,14 @@ const App = () => {
           )}
         </Panel>
         <PanelResizeHandle className="resize-handle" />
-        <Panel defaultSize={queryResults ? 20 : 0} minSize={queryResults ? 20 : 0} className="h-full" hidden={!queryResults}>
-          {queryResults && (
-            <QueryResults queryTile={{
-                "magnification": TileMagnification.LEVEL_1,
-                "uuid": "kidney",
-                "size": 256,
-                "x": 2000,
-                "y": 2000,
-              }}
-              resultTiles={queryResults}
-            />
+        <Panel 
+          defaultSize={queryResults && selectedTile ? 20 : 0} 
+          minSize={queryResults && selectedTile ? 20 : 0} 
+          className="h-full" 
+          hidden={!queryResults || !queryTile}
+        >
+          {queryResults && queryTile && (
+            <QueryResults queryTile={queryTile} resultTiles={queryResults} />
           )}
         </Panel>
       </PanelGroup>
