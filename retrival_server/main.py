@@ -1,3 +1,5 @@
+import sys
+from pathlib import Path
 from functools import lru_cache
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -9,7 +11,11 @@ import numpy as np
 from typing import Dict, Tuple, List
 from starlette.responses import StreamingResponse
 import json
+from src.qdrant_db import TileVectorDB
 
+
+# Setup tile vector database
+db = TileVectorDB("http://localhost:8080", "demo_collection")
 
 app = FastAPI()
 
@@ -22,14 +28,14 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-DATA_DIR_PATH = "../TEST/data_directory.json"
+DATA_DIR_PATH = "../TEST/DATA_DIR.json"
 with open(DATA_DIR_PATH, "r") as f:
     DATA_DIR = json.load(f)
 
 
 @lru_cache(maxsize=1)
 def get_active_slide(sample_id: str) -> Tuple[openslide.OpenSlide, DeepZoomGenerator]:
-    slide = openslide.OpenSlide(DATA_DIR[sample_id]['wsi_path'])
+    slide = openslide.OpenSlide(DATA_DIR[sample_id])
     deepzoom = DeepZoomGenerator(slide, tile_size=256, overlap=0, limit_bounds=False)
     return slide, deepzoom
 
@@ -44,6 +50,9 @@ def load_wsi(sample_id: str) -> bool:
 
 @app.get("/metadata/")
 def get_metadata(sample_id: str) -> Dict:
+
+    # get the wsi path
+    wsi_path = DATA_DIR[sample_id]
 
     # load slide (possibly already in memmory)
     slide, deepzoom = get_active_slide(sample_id=sample_id)
@@ -69,7 +78,7 @@ def get_metadata(sample_id: str) -> Dict:
         "mpp_x": float(slide.properties.get("openslide.mpp-x", "0")),
         "mpp_y": float(slide.properties.get("openslide.mpp-y", "0")),
         "resolutions": resolutions,
-        "tiles": get_tiles_info(sample_id=sample_id)
+        "tiles": db.get_wsi_tiles(wsi_path=wsi_path)
     }
 
 
@@ -94,8 +103,7 @@ def get_tile(sample_id: str, z: int, x: int, y: int) -> StreamingResponse:
     return stream_tile(tile)
 
 @app.get("/tile_image/")
-def get_tile_image(sample_id: str, x: int, y: int, size: int) -> StreamingResponse:
-    wsi_path = DATA_DIR[sample_id]['wsi_path']
+def get_tile_image(wsi_path: str, x: int, y: int, size: int) -> StreamingResponse:
     slide = openslide.OpenSlide(filename=wsi_path)
     tile = slide.read_region(location=(x, y), level=0, size=[size, size])
     return stream_tile(tile)
@@ -113,46 +121,7 @@ def query_similar_tiles(
 
     print(f"running similarity query for tile id: {tile_uuid}")
     
-    # search for tile in the database
-    
-    # extract pt, wsi info, mag, dataset
-
-    # run query search!
-
-    test_results = [
-    {       
-            "sampleID": "kidney",
-            "magnification": "10x",
-            "uuid": "kidney",
-            "size": 1000,
-            "x": 6000,
-            "y": 3000,
-        }
-    ] * 20
-
-    return test_results
-
-def get_tiles_info(sample_id: str) -> List[Dict]:
-    tiles_list = []
-    tile_idx = 0
-    for tiles_set in DATA_DIR[sample_id]['tiles']:
-        with open(tiles_set['coordinates_path'], "r") as f:
-            coordinates_data = json.load(f)
-            coordinates = coordinates_data['coordinates']
-            patch_size = coordinates_data['patch_size'][0]
-        for c in coordinates:
-            tiles_list.append({
-            "uuid": f"tile_{tile_idx}",
-            "sampleID": sample_id,
-            "magnification": tiles_set['magnification'],
-            "size": [patch_size], 
-            "x": c[0],
-            "y": c[1],
-            "stains": "H&E"
-        })
-            tile_idx += 1
-            
-    return tiles_list
+    return db.run_query(tile_uuid=tile_uuid)
 
 
 def resize_and_fill(

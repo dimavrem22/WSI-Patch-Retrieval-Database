@@ -21,11 +21,15 @@ export const toTileMagnification = (value: string): TileMagnification => {
 
 export type Tile = {
     uuid: string;
-    sampleID: string;
+    patient_id: string;
+    stain: string;
+    dataset: string;
+    wsi_path: string;
     magnification: TileMagnification;
     x: number;
     y: number;
     size: number;
+    score: number | null;
 };
 
 export type SlideMetadata = {

@@ -11,7 +11,6 @@ import WSIViewer from "./components/WSIViewer";
 import ControlPanel from "./components/ControlPanel";
 import QueryResults from "./components/QueryResults";
 import { Tile, TileMagnification } from "./types";
-import TileComponent from "./components/TileComponent";
 
 const App = () => {
   const [tileMagnification, setTileMagnification] = useState<TileMagnification | null>(null);
@@ -26,7 +25,7 @@ const App = () => {
     try {
       setQueryTile(selectedTile);
       const response = await fetch(
-        `http://localhost:8000/query_similar_tiles/?tile_uuid=${sampleID}`
+        `http://localhost:8000/query_similar_tiles/?tile_uuid=${selectedTile.uuid}`
       );
       if (!response.ok) {
         throw new Error("Failed to fetch similar tiles");
