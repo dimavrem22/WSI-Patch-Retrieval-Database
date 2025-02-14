@@ -28,21 +28,22 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-DATA_DIR_PATH = "../TEST/DATA_DIR.json"
-with open(DATA_DIR_PATH, "r") as f:
-    DATA_DIR = json.load(f)
+SAMPLE_ID_TO_WSI_PATH = "../TEST/SAMPLE_ID_TO_WSI.json"
+with open(SAMPLE_ID_TO_WSI_PATH, "r") as f:
+    SAMPLE_ID_TO_WSI = json.load(f)
+    WSI_TO_SAMPLE_ID = {v: k for k, v in SAMPLE_ID_TO_WSI.items()}
 
 
 @lru_cache(maxsize=1)
 def get_active_slide(sample_id: str) -> Tuple[openslide.OpenSlide, DeepZoomGenerator]:
-    slide = openslide.OpenSlide(DATA_DIR[sample_id])
+    slide = openslide.OpenSlide(SAMPLE_ID_TO_WSI[sample_id])
     deepzoom = DeepZoomGenerator(slide, tile_size=256, overlap=0, limit_bounds=False)
     return slide, deepzoom
 
 
 @app.get("/load_wsi/")
 def load_wsi(sample_id: str) -> bool:
-    if sample_id not in DATA_DIR:
+    if sample_id not in SAMPLE_ID_TO_WSI:
         return False
     get_active_slide(sample_id)
     return True
@@ -52,7 +53,7 @@ def load_wsi(sample_id: str) -> bool:
 def get_metadata(sample_id: str) -> Dict:
 
     # get the wsi path
-    wsi_path = DATA_DIR[sample_id]
+    wsi_path = SAMPLE_ID_TO_WSI[sample_id]
 
     # load slide (possibly already in memmory)
     slide, deepzoom = get_active_slide(sample_id=sample_id)

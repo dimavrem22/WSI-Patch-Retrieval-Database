@@ -21,7 +21,7 @@ const App = () => {
   const refs = useRef<any>(null);
   
   const querySimilarTiles = async () => {
-    if (!selectedTile) return; // Ensure queryTile is not null before running query
+    if (!selectedTile) return;
     try {
       setQueryTile(selectedTile);
       const response = await fetch(

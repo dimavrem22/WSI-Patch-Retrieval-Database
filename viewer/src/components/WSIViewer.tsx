@@ -7,7 +7,7 @@ import TileGrid from "ol/tilegrid/TileGrid";
 import VectorLayer from "ol/layer/Vector";
 import VectorSource from "ol/source/Vector";
 import { Feature } from "ol";
-import { Polygon } from "ol/geom";
+import { Polygon, Geometry } from "ol/geom";
 import { Style, Stroke, Fill } from "ol/style";
 import { defaults as defaultControls } from "ol/control";
 import { defaults as defaultInteractions } from "ol/interaction";
@@ -18,45 +18,30 @@ interface WSIViewerProps {
   onSelectedTileChange: (tile: Tile | null) => void;
   tileMagnification: TileMagnification | null;
   sampleID: string;
-  
 }
 
-const WSIViewer: React.FC<WSIViewerProps> = ({ tileMagnification, sampleID, onSelectedTileChange}) => {
-  console.log("Tile Magnification:", tileMagnification);
+const WSIViewer: React.FC<WSIViewerProps> = ({ tileMagnification, sampleID, onSelectedTileChange }) => {
   const mapRef = useRef<HTMLDivElement>(null);
-  const coordRef = useRef<HTMLDivElement>(null);
-  const mapInstance = useRef<Map | null>(null);
-  const vectorSourceRef = useRef<VectorSource>(new VectorSource());
+  const vectorSourceRef = useRef(new VectorSource());
+  const lastHighlightedFeature = useRef<Feature<Geometry> | null>(null);
   const [metadata, setMetadata] = useState<SlideMetadata | null>(null);
-  const vectorLayerRef = useRef<VectorLayer | null>(null);
-  const lastHighlightedFeature = useRef<Feature<Polygon> | null>(null);
 
   useEffect(() => {
     const fetchMetadata = async () => {
       try {
         const response = await fetch(`http://localhost:8000/metadata/?sample_id=${sampleID}`);
-        if (!response.ok) {
-          throw new Error("Failed to fetch metadata");
-        }
-        const data = await response.json();
-        setMetadata(data);
+        if (!response.ok) throw new Error("Failed to fetch metadata");
+        setMetadata(await response.json());
       } catch (error) {
         console.error("Error fetching metadata:", error);
       }
     };
-
     fetchMetadata();
   }, [sampleID]);
 
   useEffect(() => {
-    if (!mapRef.current || !metadata || !coordRef.current) return;
+    if (!mapRef.current || !metadata) return;
 
-    console.log(metadata);
-
-    const scaleX = 1;
-    const scaleY = 1;
-
-    // Tile Grid Setup
     const slideGrid = new TileGrid({
       extent: metadata.extent,
       tileSize: [256, 256],
@@ -64,71 +49,19 @@ const WSIViewer: React.FC<WSIViewerProps> = ({ tileMagnification, sampleID, onSe
       resolutions: metadata.resolutions,
     });
 
-    // Tile Source Setup
-    const tileSource = new XYZ({
-      url: `http://localhost:8000/tiles/{z}/{x}/{y}/?sample_id=${sampleID}`,
-      crossOrigin: "anonymous",
-      tileGrid: slideGrid,
-    });
-
-    // Create Tile Layer
     const tileLayer = new TileLayer({
-      source: tileSource,
+      source: new XYZ({
+        url: `http://localhost:8000/tiles/{z}/{x}/{y}/?sample_id=${sampleID}`,
+        crossOrigin: "anonymous",
+        tileGrid: slideGrid,
+      }),
     });
 
-    // Create Vector Source for Tiles
-    const vectorSource = new VectorSource();
-    vectorSourceRef.current = vectorSource;
-
-    // Create Tiles as Features
-    metadata.tiles.filter((tile) => {
-      return tile.magnification == tileMagnification;
-    }).forEach((tile) => {
-      const x = metadata.extent[0] + tile.x;
-      const y = metadata.extent[3] - tile.y - tile.size;
-      const sizeX = tile.size * scaleX;
-      const sizeY = tile.size * scaleY;
-
-      const tilePolygon = new Polygon([
-        [
-          [x, y],
-          [x + sizeX, y],
-          [x + sizeX, y + sizeY],
-          [x, y + sizeY],
-          [x, y],
-        ],
-      ]);
-
-      const tileFeature = new Feature({
-        geometry: tilePolygon,
-        name: tile.uuid,
-      });
-
-      // Default Tile Style (Red Outline, No Fill)
-      tileFeature.setStyle(
-        new Style({
-          stroke: new Stroke({
-            color: "red",
-            width: 2,
-          }),
-        })
-      );
-
-      vectorSource.addFeature(tileFeature);
-    });
-
-    // Create Vector Layer for Tile Outlines
-    const vectorLayer = new VectorLayer({
-      source: vectorSource,
-    });
-    vectorLayerRef.current = vectorLayer;
-
-    // Create OpenLayers Map (Disable Double-Click Zoom)
-    mapInstance.current = new Map({
+    const vectorLayer = new VectorLayer({ source: vectorSourceRef.current });
+    const mapInstance = new Map({
       target: mapRef.current,
       layers: [tileLayer, vectorLayer],
-      controls: defaultControls({ zoom: false, rotate: false }).extend([
-      ]),
+      controls: defaultControls({ zoom: false, rotate: false }),
       interactions: defaultInteractions({ doubleClickZoom: false }),
       view: new View({
         projection: "EPSG:3857",
@@ -143,132 +76,65 @@ const WSIViewer: React.FC<WSIViewerProps> = ({ tileMagnification, sampleID, onSe
       }),
     });
 
-    // Click Event to Highlight Tile
-    mapInstance.current.on("singleclick", (event) => {
+    mapInstance.on("singleclick", (event) => {
       const clickedCoords = event.coordinate;
-      console.log(`Clicked at: X: ${clickedCoords[0].toFixed(2)}, Y: ${clickedCoords[1].toFixed(2)}`);
+      let selectedTile = null;
 
-      // Find the clicked tile
-      let clickedFeature: Feature<Polygon> | null = null;
-      let selectedTileUuid: string | null = null;
-
-        vectorSource.forEachFeature((feature) => {
-          if (feature.getGeometry()?.intersectsCoordinate(clickedCoords)) {
-            clickedFeature = feature as Feature<Polygon>;
-            console.log(clickedFeature);
-            console.log("Tile Name:", clickedFeature.get("name") || null);
-            selectedTileUuid = clickedFeature.get("name") || null;
-          }
+      vectorSourceRef.current.forEachFeature((feature) => {
+        if (feature.getGeometry()?.intersectsCoordinate(clickedCoords)) {
+          selectedTile = metadata.tiles.find((tile) => tile.uuid === feature.get("name"));
+        }
       });
 
-      if (clickedFeature) {
-
-        // update the selected tile
-        const selectedTile = metadata.tiles.filter((tile: Tile) => {return tile.uuid == selectedTileUuid;})[0]
-        onSelectedTileChange(selectedTile);
-
-        // Remove previous highlights
-        vectorSource.forEachFeature((feature) => {
-          (feature as Feature<Polygon>).setStyle(
-            new Style({
-              stroke: new Stroke({
-                color: "red",
-                width: 2,
-              }),
-            })
-          );
-        });
-
-        // Highlight clicked tile (Yellow Fill)
-        (clickedFeature as Feature<Polygon>).setStyle(
-          new Style({
-            stroke: new Stroke({
-              color: "red",
-              width: 2,
-            }),
-            fill: new Fill({
-              color: "hsla(60, 91.20%, 44.50%, 0.27)", // Light yellow with low opacity
-            }),
-          })
-        );
-        lastHighlightedFeature.current = clickedFeature; // Store the newly highlighted tile
-      } else {
-        // Unhighlight the previously selected tile if clicking on empty space
-        if (lastHighlightedFeature.current) {
-          lastHighlightedFeature.current.setStyle(
-            new Style({
-              stroke: new Stroke({ color: "red", width: 2 }), // Revert to default style
-            })
-          );
-          lastHighlightedFeature.current = null; // Clear reference
-          onSelectedTileChange(null);
-        }
-      
-      }
+      onSelectedTileChange(selectedTile || null);
+      highlightTile(selectedTile);
     });
 
-    return () => {
-      mapInstance.current?.setTarget(undefined);
-    };
+    return () => mapInstance.setTarget(undefined);
   }, [metadata, sampleID]);
 
   useEffect(() => {
     if (!metadata || !vectorSourceRef.current) return;
 
-    console.log("Updating polygons for magnification:", tileMagnification);
-
     const vectorSource = vectorSourceRef.current;
-    vectorSource.clear(); // Remove old polygons
+    vectorSource.clear();
 
     metadata.tiles
       .filter((tile) => tile.magnification === tileMagnification)
       .forEach((tile) => {
         const x = metadata.extent[0] + tile.x;
         const y = metadata.extent[3] - tile.y - tile.size;
-        const sizeX = tile.size * 1;
-        const sizeY = tile.size * 1;
-
-        const tilePolygon = new Polygon([
-          [
-            [x, y],
-            [x + sizeX, y],
-            [x + sizeX, y + sizeY],
-            [x, y + sizeY],
-            [x, y],
-          ],
-        ]);
-
-        const tileFeature = new Feature(
-          { geometry: tilePolygon,
-            name: tile.uuid,
-          }
-        );
-
-        // Default Tile Style (Red Outline, No Fill)
-        tileFeature.setStyle(
-          new Style({
-            stroke: new Stroke({ color: "red", width: 2 }),
-          })
-        );
-
+        const tileFeature = new Feature({
+          geometry: new Polygon([[[x, y], [x + tile.size, y], [x + tile.size, y + tile.size], [x, y + tile.size], [x, y]]]),
+          name: tile.uuid,
+        });
+        tileFeature.setStyle(new Style({ stroke: new Stroke({ color: "red", width: 2 }) }));
         vectorSource.addFeature(tileFeature);
       });
+  }, [tileMagnification, metadata]);
 
-    if (vectorLayerRef.current) {
-      vectorLayerRef.current.setSource(vectorSource); // Reapply updated source
+  const highlightTile = (tile: Tile | null) => {
+    vectorSourceRef.current.forEachFeature((feature) => {
+      feature.setStyle(new Style({ stroke: new Stroke({ color: "red", width: 2 }) }));
+    });
+
+    if (tile) {
+      const selectedFeature = vectorSourceRef.current.getFeatures().find((f) => f.get("name") === tile.uuid);
+      if (selectedFeature) {
+        selectedFeature.setStyle(new Style({
+          stroke: new Stroke({ color: "red", width: 2 }),
+          fill: new Fill({ color: "hsla(60, 91.20%, 44.50%, 0.27)" }),
+        }));
+        lastHighlightedFeature.current = selectedFeature;
+      }
+    } else {
+      lastHighlightedFeature.current = null;
     }
-  }, [tileMagnification, metadata, sampleID]);
+  };
 
-  if (!metadata) {
-    return <div>Loading metadata...</div>;
-  }
+  if (!metadata) return <div>Loading metadata...</div>;
 
-  return (
-    <div className="map-container">
-    <div ref={mapRef} className="wsi-viewer" />
-    <div ref={coordRef} className="mouse-coordinates"></div> {/* Start empty to avoid whitespace issues */}
-  </div>
-  );
+  return <div className="map-container"><div ref={mapRef} className="wsi-viewer" /></div>;
 };
 
 export default WSIViewer;
