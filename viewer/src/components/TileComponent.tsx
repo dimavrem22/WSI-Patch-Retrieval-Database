@@ -35,12 +35,11 @@ const TileComponent: React.FC<TileComponentProps> = ({ tile }) => {
     <div className="tile-container">
       <img src={imageSrc} alt="Tile" className="tile-image" width={256} height={256} />
       <div className="tile-info">
-        <span><strong>Score:</strong> {tile.score}, </span>
+        <span><strong>Score:</strong> {tile.score ? tile.score.toFixed(3) : "N/A"}, </span>
         <span><strong>Dataset:</strong> {tile.dataset}, </span>
-        <span><strong>Mag:</strong> {tile.magnification}, </span><span><strong>Patient:</strong> {tile.patient_id}, </span>
         <span><strong>Mag:</strong> {tile.magnification}, </span>
+        <span><strong>Patient:</strong> {tile.patient_id}, </span>
         <span><strong>Stain:</strong> {tile.stain}</span>
-
       </div>
     </div>
   );

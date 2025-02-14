@@ -1,48 +1,36 @@
 import { useState } from "react";
 import { TileMagnification, toTileMagnification } from "../types";
 
-type ControlPanelProps = {
+interface ControlPanelProps {
   onSampleIdChange: (sampleId: string) => void;
   onQueryRun: () => void;
   onTileMagnificationChange: (tileMagnification: TileMagnification) => void;
-};
-
-type InputFieldProps = {
-  label: string;
-  type: string;
-  value: string;
-  onChange: (value: string) => void;
-  placeholder?: string;
-};
-
-type DropdownProps = {
-  label: string;
-  value: string;
-  options: string[];
-  onChange: (value: string) => void;
-};
+}
 
 const ControlPanel: React.FC<ControlPanelProps> = ({
   onQueryRun,
   onSampleIdChange,
   onTileMagnificationChange,
 }) => {
-  const [sampleID, setSampleId] = useState<string>("");
-  const [tileOption, setTileOption] = useState<string>("none");
-  const [samePatientQuery, setSamePatientQuery] = useState<string>("NA");
-  const [sameWsiQuery, setSameWsiQuery] = useState<string>("NA");
+  const [sampleID, setSampleId] = useState("");
+  const [tileOption, setTileOption] = useState("none");
+  const [samePatientQuery, setSamePatientQuery] = useState("NA");
+  const [sameWsiQuery, setSameWsiQuery] = useState("NA");
 
   return (
     <div className="control-panel" style={styles.panel}>
-      <InputField
-        label="Sample:"
-        type="text"
-        value={sampleID}
-        onChange={setSampleId}
-        placeholder="Enter sample ID"
-      />
+      <label>
+        Sample:
+        <input
+          type="text"
+          value={sampleID}
+          onChange={(e) => setSampleId(e.target.value)}
+          placeholder="Enter sample ID"
+          style={styles.input}
+        />
+      </label>
       <button onClick={() => onSampleIdChange(sampleID)}>🔍</button>
-      <br/><br/>
+      <br /><br />
       <Dropdown
         label="Tile Magnification:"
         value={tileOption}
@@ -52,47 +40,35 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
           onTileMagnificationChange(toTileMagnification(value));
         }}
       />
-      <br/><br/>
+      <br /><br />
       <Dropdown
         label="Patient Query Option:"
         value={samePatientQuery}
         options={["NA", "same", "other"]}
         onChange={setSamePatientQuery}
       />
-      <br/><br/>
+      <br /><br />
       <Dropdown
         label="WSI Query Option:"
         value={sameWsiQuery}
         options={["NA", "same", "other"]}
         onChange={setSameWsiQuery}
       />
-      <br/><br/>
+      <br /><br />
       <button onClick={onQueryRun}>RUN QUERY</button>
     </div>
   );
 };
 
-const InputField: React.FC<InputFieldProps> = ({ label, type, value, onChange, placeholder }) => (
+const Dropdown: React.FC<{ label: string; value: string; options: string[]; onChange: (value: string) => void }> = ({
+  label,
+  value,
+  options,
+  onChange,
+}) => (
   <label>
     {label}
-    <input
-      type={type}
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
-      placeholder={placeholder}
-      style={styles.input}
-    />
-  </label>
-);
-
-const Dropdown: React.FC<DropdownProps> = ({ label, value, options, onChange }) => (
-  <label>
-    {label}
-    <select
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
-      style={styles.select}
-    >
+    <select value={value} onChange={(e) => onChange(e.target.value)} style={styles.select}>
       {options.map((option) => (
         <option key={option} value={option}>
           {option}
@@ -104,7 +80,7 @@ const Dropdown: React.FC<DropdownProps> = ({ label, value, options, onChange }) 
 
 const styles = {
   panel: { padding: "10px", border: "1px solid #ccc" },
-  input: { marginLeft: "10px", padding: "5px", width: "100px" },
+  input: { marginLeft: "10px", padding: "5px", width: "150px" },
   select: { marginLeft: "10px", padding: "5px" },
 };
 

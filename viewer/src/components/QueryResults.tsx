@@ -8,15 +8,50 @@ interface QueryResultsProps {
 }
 
 const QueryResults: React.FC<QueryResultsProps> = ({ queryTile, resultTiles }) => {
+  const uniquePatients = new Set(resultTiles.map(tile => tile.patient_id)).size;
+  const totalResults = resultTiles.length;
+  
+  const stainDistribution = resultTiles.reduce((acc, tile) => {
+    acc[tile.stain] = (acc[tile.stain] || 0) + 1;
+    return acc;
+  }, {} as Record<string, number>);
+  
+  const magnificationDistribution = resultTiles.reduce((acc, tile) => {
+    acc[tile.magnification] = (acc[tile.magnification] || 0) + 1;
+    return acc;
+  }, {} as Record<string, number>);
+  
+  const scores = resultTiles.map(tile => tile.score).filter(score => score !== undefined) as number[];
+  const maxScore = scores.length > 0 ? Math.max(...scores).toFixed(3) : "N/A";
+  const minScore = scores.length > 0 ? Math.min(...scores).toFixed(3) : "N/A";
+
   return (
     <div className="query-results-container">
-      <div className="query-image-wrapper">
-        <TileComponent tile={queryTile} />
-        <p className="hits-count">Hits: {resultTiles.length}</p>
+      <div className="query-content">
+        <div className="query-image-wrapper">
+          <TileComponent tile={queryTile} />
+        </div>
+        <div className="query-info">
+          <p><strong>Hits:</strong> {totalResults}</p>
+          <p><strong>Unique Patients:</strong> {uniquePatients}</p>
+          <p><strong>Similarity:</strong> {minScore} - {maxScore}</p>
+          <p><strong>Stain Distribution:</strong></p>
+          <ul>
+            {Object.entries(stainDistribution).map(([stain, count]) => (
+              <li key={stain}>{stain}: {count} ({((count / totalResults) * 100).toFixed(1)}%)</li>
+            ))}
+          </ul>
+          <p><strong>Magnification Distribution:</strong></p>
+          <ul>
+            {Object.entries(magnificationDistribution).map(([mag, count]) => (
+              <li key={mag}>{mag}: {count} ({((count / totalResults) * 100).toFixed(1)}%)</li>
+            ))}
+          </ul>
+        </div>
       </div>
       <div className="tiles-container">
-        {resultTiles.map((tile, tile_idx) => (
-          <TileComponent key={tile_idx} tile={tile} />
+        {resultTiles.map((tile, index) => (
+          <TileComponent key={index} tile={tile} />
         ))}
       </div>
     </div>
