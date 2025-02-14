@@ -105,9 +105,25 @@ def get_tile(sample_id: str, z: int, x: int, y: int) -> StreamingResponse:
 
 @app.get("/tile_image/")
 def get_tile_image(wsi_path: str, x: int, y: int, size: int) -> StreamingResponse:
-    slide = openslide.OpenSlide(filename=wsi_path)
-    tile = slide.read_region(location=(x, y), level=0, size=[size, size])
+    slide = openslide.OpenSlide(wsi_path)
+
+    # Get the best level that can give us a 256x256 tile efficiently
+    best_level = slide.get_best_level_for_downsample(size / 256)
+    level_downsample = slide.level_downsamples[best_level]
+
+    # Scale x, y, and size to match the selected level
+    adj_x = int(x / level_downsample)
+    adj_y = int(y / level_downsample)
+    adj_size = int(size / level_downsample)
+
+    # Read the adjusted region at the selected level
+    tile = slide.read_region((adj_x, adj_y), best_level, (adj_size, adj_size))
+
+    # Resize tile to 256x256
+    tile = tile.resize((256, 256))
+
     return stream_tile(tile)
+
 
 @app.get("/query_similar_tiles/")
 def query_similar_tiles(

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useEffect, useRef } from "react";
 import Map from "ol/Map";
 import View from "ol/View";
 import TileLayer from "ol/layer/Tile";
@@ -11,52 +11,56 @@ import { Polygon, Geometry } from "ol/geom";
 import { Style, Stroke, Fill } from "ol/style";
 import { defaults as defaultControls } from "ol/control";
 import { defaults as defaultInteractions } from "ol/interaction";
-import { SlideMetadata, Tile, TileMagnification } from "../types";
+import { Tile } from "../types";
+import { useGlobalStore } from "../store/useGlobalStore";
 import "ol/ol.css";
 
-interface WSIViewerProps {
-  onSelectedTileChange: (tile: Tile | null) => void;
-  tileMagnification: TileMagnification | null;
-  sampleID: string;
-}
 
-const WSIViewer: React.FC<WSIViewerProps> = ({ tileMagnification, sampleID, onSelectedTileChange }) => {
+const WSIViewer = () => {
+
+  const {
+    currentSlideID,
+    setSelectedTile,
+    currentSlideMetadata,
+    setCurrentSlideMetadata,
+    viewMagnification,
+  } = useGlobalStore();
+
   const mapRef = useRef<HTMLDivElement>(null);
   const vectorSourceRef = useRef(new VectorSource());
   const lastHighlightedFeature = useRef<Feature<Geometry> | null>(null);
-  const [metadata, setMetadata] = useState<SlideMetadata | null>(null);
 
   useEffect(() => {
     const fetchMetadata = async () => {
       try {
-        const response = await fetch(`http://localhost:8000/metadata/?sample_id=${sampleID}`);
+        const response = await fetch(`http://localhost:8000/metadata/?sample_id=${currentSlideID}`);
         if (!response.ok) throw new Error("Failed to fetch metadata");
-        setMetadata(await response.json());
+        setCurrentSlideMetadata(await response.json());
       } catch (error) {
         console.error("Error fetching metadata:", error);
       }
     };
     fetchMetadata();
-  }, [sampleID]);
+  }, [currentSlideID]);
 
   useEffect(() => {
-    if (!mapRef.current || !metadata) return;
-
+    if (!mapRef.current || !currentSlideMetadata) return;
+  
     const slideGrid = new TileGrid({
-      extent: metadata.extent,
+      extent: currentSlideMetadata.extent,
       tileSize: [256, 256],
-      minZoom: metadata.minZoom,
-      resolutions: metadata.resolutions,
+      minZoom: currentSlideMetadata.minZoom,
+      resolutions: currentSlideMetadata.resolutions,
     });
-
+  
     const tileLayer = new TileLayer({
       source: new XYZ({
-        url: `http://localhost:8000/tiles/{z}/{x}/{y}/?sample_id=${sampleID}`,
+        url: `http://localhost:8000/tiles/{z}/{x}/{y}/?sample_id=${currentSlideID}`,
         crossOrigin: "anonymous",
         tileGrid: slideGrid,
       }),
     });
-
+  
     const vectorLayer = new VectorLayer({ source: vectorSourceRef.current });
     const mapInstance = new Map({
       target: mapRef.current,
@@ -66,44 +70,50 @@ const WSIViewer: React.FC<WSIViewerProps> = ({ tileMagnification, sampleID, onSe
       view: new View({
         projection: "EPSG:3857",
         center: [
-          metadata.extent[0] + (metadata.extent[2] - metadata.extent[0]) / 2,
-          metadata.extent[1] + (metadata.extent[3] - metadata.extent[1]) / 2,
+          currentSlideMetadata.extent[0] + (currentSlideMetadata.extent[2] - currentSlideMetadata.extent[0]) / 2,
+          currentSlideMetadata.extent[1] + (currentSlideMetadata.extent[3] - currentSlideMetadata.extent[1]) / 2,
         ],
-        zoom: metadata.startZoom,
-        minZoom: metadata.minZoom,
-        maxZoom: metadata.maxZoom,
-        extent: metadata.extent,
+        zoom: currentSlideMetadata.startZoom,
+        minZoom: currentSlideMetadata.minZoom,
+        maxZoom: currentSlideMetadata.maxZoom,
+        extent: currentSlideMetadata.extent,
       }),
     });
-
+  
+    // Handle tile selection
     mapInstance.on("singleclick", (event) => {
       const clickedCoords = event.coordinate;
       let selectedTile = null;
-
+  
       vectorSourceRef.current.forEachFeature((feature) => {
         if (feature.getGeometry()?.intersectsCoordinate(clickedCoords)) {
-          selectedTile = metadata.tiles.find((tile) => tile.uuid === feature.get("name"));
+          selectedTile = currentSlideMetadata.tiles.find((tile) => tile.uuid === feature.get("name"));
         }
       });
-
-      onSelectedTileChange(selectedTile || null);
+  
+      setSelectedTile(selectedTile || null);
       highlightTile(selectedTile);
     });
-
-    return () => mapInstance.setTarget(undefined);
-  }, [metadata, sampleID]);
+  
+    // Cleanup function to remove the previous map instance
+    return () => {
+      mapInstance.setTarget(undefined);
+      mapInstance.dispose();
+    };
+  }, [currentSlideMetadata]);
+  
 
   useEffect(() => {
-    if (!metadata || !vectorSourceRef.current) return;
+    if (!currentSlideMetadata || !vectorSourceRef.current) return;
 
     const vectorSource = vectorSourceRef.current;
     vectorSource.clear();
 
-    metadata.tiles
-      .filter((tile) => tile.magnification === tileMagnification)
+    currentSlideMetadata.tiles
+      .filter((tile) => tile.magnification === viewMagnification)
       .forEach((tile) => {
-        const x = metadata.extent[0] + tile.x;
-        const y = metadata.extent[3] - tile.y - tile.size;
+        const x = currentSlideMetadata.extent[0] + tile.x;
+        const y = currentSlideMetadata.extent[3] - tile.y - tile.size;
         const tileFeature = new Feature({
           geometry: new Polygon([[[x, y], [x + tile.size, y], [x + tile.size, y + tile.size], [x, y + tile.size], [x, y]]]),
           name: tile.uuid,
@@ -111,7 +121,7 @@ const WSIViewer: React.FC<WSIViewerProps> = ({ tileMagnification, sampleID, onSe
         tileFeature.setStyle(new Style({ stroke: new Stroke({ color: "red", width: 2 }) }));
         vectorSource.addFeature(tileFeature);
       });
-  }, [tileMagnification, metadata]);
+  }, [viewMagnification, currentSlideMetadata?.tiles]);
 
   const highlightTile = (tile: Tile | null) => {
     vectorSourceRef.current.forEachFeature((feature) => {
@@ -132,7 +142,7 @@ const WSIViewer: React.FC<WSIViewerProps> = ({ tileMagnification, sampleID, onSe
     }
   };
 
-  if (!metadata) return <div>Loading metadata...</div>;
+  if (!currentSlideMetadata) return <div>Loading metadata...</div>;
 
   return <div className="map-container"><div ref={mapRef} className="wsi-viewer" /></div>;
 };

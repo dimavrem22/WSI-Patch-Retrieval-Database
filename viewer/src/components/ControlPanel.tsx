@@ -1,17 +1,18 @@
 import { useState } from "react";
-import { TileMagnification, toTileMagnification } from "../types";
+import { toTileMagnification } from "../types";
+import { useGlobalStore } from "../store/useGlobalStore";
 
 interface ControlPanelProps {
-  onSampleIdChange: (sampleId: string) => void;
   onQueryRun: () => void;
-  onTileMagnificationChange: (tileMagnification: TileMagnification) => void;
 }
 
-const ControlPanel: React.FC<ControlPanelProps> = ({
-  onQueryRun,
-  onSampleIdChange,
-  onTileMagnificationChange,
-}) => {
+const ControlPanel: React.FC<ControlPanelProps> = ({ onQueryRun }) => {
+  
+  const {
+      setViewMagnification,
+      setCurrentSlide,
+    } = useGlobalStore();
+
   const [sampleID, setSampleId] = useState("");
   const [tileOption, setTileOption] = useState("none");
   const [samePatientQuery, setSamePatientQuery] = useState("NA");
@@ -29,7 +30,7 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
           style={styles.input}
         />
       </label>
-      <button onClick={() => onSampleIdChange(sampleID)}>🔍</button>
+      <button onClick={() => setCurrentSlide(sampleID)}>🔍</button>
       <br /><br />
       <Dropdown
         label="Tile Magnification:"
@@ -37,7 +38,7 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
         options={["none", "5x", "10x", "20x"]}
         onChange={(value) => {
           setTileOption(value);
-          onTileMagnificationChange(toTileMagnification(value));
+          setViewMagnification(toTileMagnification(value));
         }}
       />
       <br /><br />

@@ -40,7 +40,7 @@ const TileComponent: React.FC<TileComponentProps> = ({ tile }) => {
         <span><strong>Mag:</strong> {tile.magnification}, </span>
         <span><strong>Patient:</strong> {tile.patient_id}, </span>
         <span><strong>Stain:</strong> {tile.stain}</span>
-      </div>
+      </div>  
     </div>
   );
 };
