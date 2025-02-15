@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import Map from "ol/Map";
 import View from "ol/View";
 import TileLayer from "ol/layer/Tile";
@@ -20,15 +20,23 @@ const WSIViewer = () => {
 
   const {
     currentSlideID,
+    selectedTile,
     setSelectedTile,
     currentSlideMetadata,
     setCurrentSlideMetadata,
     viewMagnification,
   } = useGlobalStore();
 
+  const tileStyle = new Style({ stroke: new Stroke({ color: "red", width: 2 }) });
+  const highlightStyle = new Style({
+    stroke: new Stroke({ color: "red", width: 2 }),
+    fill: new Fill({ color: "hsla(60, 91.20%, 44.50%, 0.27)" }),
+  });
+
   const mapRef = useRef<HTMLDivElement>(null);
   const vectorSourceRef = useRef(new VectorSource());
   const lastHighlightedFeature = useRef<Feature<Geometry> | null>(null);
+
 
   useEffect(() => {
     const fetchMetadata = async () => {
@@ -49,7 +57,7 @@ const WSIViewer = () => {
     const slideGrid = new TileGrid({
       extent: currentSlideMetadata.extent,
       tileSize: [256, 256],
-      minZoom: currentSlideMetadata.minZoom,
+      minZoom: currentSlideMetadata.minZoom-2,
       resolutions: currentSlideMetadata.resolutions,
     });
   
@@ -62,6 +70,21 @@ const WSIViewer = () => {
     });
   
     const vectorLayer = new VectorLayer({ source: vectorSourceRef.current });
+
+    // if a tile is selected, have it be the center and zoomed in
+    let center = [
+      currentSlideMetadata.extent[0] + (currentSlideMetadata.extent[2] - currentSlideMetadata.extent[0]) / 2,
+      currentSlideMetadata.extent[1] + (currentSlideMetadata.extent[3] - currentSlideMetadata.extent[1]) / 2,
+    ]
+    let zoom = currentSlideMetadata.minZoom
+    if (selectedTile) {
+      center = [
+        selectedTile.x + selectedTile.size / 2,
+        currentSlideMetadata.extent[3] - selectedTile.y - selectedTile.size / 2
+      ];
+      zoom = currentSlideMetadata.maxZoom-2;
+    }
+
     const mapInstance = new Map({
       target: mapRef.current,
       layers: [tileLayer, vectorLayer],
@@ -69,13 +92,10 @@ const WSIViewer = () => {
       interactions: defaultInteractions({ doubleClickZoom: false }),
       view: new View({
         projection: "EPSG:3857",
-        center: [
-          currentSlideMetadata.extent[0] + (currentSlideMetadata.extent[2] - currentSlideMetadata.extent[0]) / 2,
-          currentSlideMetadata.extent[1] + (currentSlideMetadata.extent[3] - currentSlideMetadata.extent[1]) / 2,
-        ],
-        zoom: currentSlideMetadata.startZoom,
-        minZoom: currentSlideMetadata.minZoom,
-        maxZoom: currentSlideMetadata.maxZoom,
+        center: center,
+        zoom: zoom,
+        minZoom: currentSlideMetadata.minZoom-2,
+        maxZoom: currentSlideMetadata.maxZoom+2,
         extent: currentSlideMetadata.extent,
       }),
     });
@@ -84,7 +104,7 @@ const WSIViewer = () => {
     mapInstance.on("singleclick", (event) => {
       const clickedCoords = event.coordinate;
       let selectedTile = null;
-  
+
       vectorSourceRef.current.forEachFeature((feature) => {
         if (feature.getGeometry()?.intersectsCoordinate(clickedCoords)) {
           selectedTile = currentSlideMetadata.tiles.find((tile) => tile.uuid === feature.get("name"));
@@ -105,42 +125,46 @@ const WSIViewer = () => {
 
   useEffect(() => {
     if (!currentSlideMetadata || !vectorSourceRef.current) return;
-
+  
     const vectorSource = vectorSourceRef.current;
     vectorSource.clear();
-
-    currentSlideMetadata.tiles
+  
+    const features = currentSlideMetadata.tiles
       .filter((tile) => tile.magnification === viewMagnification)
-      .forEach((tile) => {
+      .map((tile) => {
         const x = currentSlideMetadata.extent[0] + tile.x;
         const y = currentSlideMetadata.extent[3] - tile.y - tile.size;
-        const tileFeature = new Feature({
+  
+        return new Feature({
           geometry: new Polygon([[[x, y], [x + tile.size, y], [x + tile.size, y + tile.size], [x, y + tile.size], [x, y]]]),
           name: tile.uuid,
+          style: tileStyle,
         });
-        tileFeature.setStyle(new Style({ stroke: new Stroke({ color: "red", width: 2 }) }));
-        vectorSource.addFeature(tileFeature);
       });
-  }, [viewMagnification, currentSlideMetadata?.tiles]);
+  
+    vectorSource.addFeatures(features);
+    highlightTile(selectedTile);
+  
+  }, [viewMagnification, currentSlideMetadata, selectedTile])
 
   const highlightTile = (tile: Tile | null) => {
-    vectorSourceRef.current.forEachFeature((feature) => {
-      feature.setStyle(new Style({ stroke: new Stroke({ color: "red", width: 2 }) }));
-    });
+
+    // this rerenders the entire tile grid (prevents highlight of multiple tiles)
+    vectorSourceRef.current.forEachFeature((feature) => {feature.setStyle(tileStyle);});
 
     if (tile) {
       const selectedFeature = vectorSourceRef.current.getFeatures().find((f) => f.get("name") === tile.uuid);
       if (selectedFeature) {
-        selectedFeature.setStyle(new Style({
-          stroke: new Stroke({ color: "red", width: 2 }),
-          fill: new Fill({ color: "hsla(60, 91.20%, 44.50%, 0.27)" }),
-        }));
+        selectedFeature.setStyle(highlightStyle);
         lastHighlightedFeature.current = selectedFeature;
       }
     } else {
       lastHighlightedFeature.current = null;
     }
   };
+
+
+  
 
   if (!currentSlideMetadata) return <div>Loading metadata...</div>;
 

@@ -11,6 +11,7 @@ const ControlPanel: React.FC<ControlPanelProps> = ({ onQueryRun }) => {
   const {
       setViewMagnification,
       setCurrentSlide,
+      setSelectedTile,
     } = useGlobalStore();
 
   const [sampleID, setSampleId] = useState("");
@@ -25,7 +26,11 @@ const ControlPanel: React.FC<ControlPanelProps> = ({ onQueryRun }) => {
         <input
           type="text"
           value={sampleID}
-          onChange={(e) => setSampleId(e.target.value)}
+          onChange={(e) => {
+            setSelectedTile(null);
+            setSampleId(e.target.value);
+          }
+          }
           placeholder="Enter sample ID"
           style={styles.input}
         />
