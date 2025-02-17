@@ -107,6 +107,8 @@ class TileVectorDB:
         
         if same_wsi:
             must_filters.append(FieldCondition(key="wsi_path", match=MatchValue(value=payload.wsi_path)))
+        elif same_wsi is False:
+            must_not_filters.append(FieldCondition(key="wsi_path", match=MatchValue(value=payload.wsi_path)))
 
         if magnification_list:
             must_filters.append(FieldCondition(key="magnification", match=MatchValue(value=magnification_list[0].value)))
