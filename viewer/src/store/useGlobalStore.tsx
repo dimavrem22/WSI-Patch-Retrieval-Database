@@ -8,7 +8,8 @@ interface GlobalState {
   queryTile: Tile | null;
   queryResults: Tile[] | null;
   queryControls: QueryForm;
-  viewMagnification: TileMagnification;
+  viewMagnification: TileMagnification | null;
+  center: [number, number] | null;
 
   setCurrentSlide: (slide: string | null) => void;
   setCurrentSlideMetadata: (slideMetadata: SlideMetadata | null) => void;
@@ -16,7 +17,8 @@ interface GlobalState {
   setQueryTile: (queryTile: Tile | null) => void;
   setQueryResults: (results: Tile[] | null) => void;
   setQueryControls: (controls: QueryForm) => void;
-  setViewMagnification: (magnification: TileMagnification) => void;
+  setViewMagnification: (magnification: TileMagnification | null) => void;
+  setCenter: (center: [number, number] | null) => void;
 }
 
 export const useGlobalStore = create<GlobalState>((set) => ({
@@ -25,7 +27,7 @@ export const useGlobalStore = create<GlobalState>((set) => ({
   selectedTile: null,
   queryTile: null,
   queryResults: null,
-  viewMagnification: TileMagnification.LEVEL_0,
+  viewMagnification: null,
   queryControls: {
     tileUuid: "",
     maxSamples: 100,
@@ -36,6 +38,7 @@ export const useGlobalStore = create<GlobalState>((set) => ({
     stains: null,
     magnifications: null,
   },
+  center: null,
 
   setCurrentSlide: (slide) => set({ currentSlideID: slide }),
   setCurrentSlideMetadata: (slideMetadata) => set({ currentSlideMetadata: slideMetadata }),
@@ -44,4 +47,5 @@ export const useGlobalStore = create<GlobalState>((set) => ({
   setQueryResults: (results) => set({ queryResults: results }),
   setQueryControls: (controls) => set({ queryControls: controls }),
   setViewMagnification: (magnification) => set({ viewMagnification: magnification }),
+  setCenter: (center) => set({ center: center }),
 }));

@@ -1,6 +1,7 @@
 import { useState } from "react";
-import { toTileMagnification } from "../types";
+import { toTileMagnification, TileMagnification, Stains } from "../types";
 import { useGlobalStore } from "../store/useGlobalStore";
+import { useQueryStore } from "../store/useQueryStore";
 
 interface ControlPanelProps {
   onQueryRun: () => void;
@@ -14,10 +15,25 @@ const ControlPanel: React.FC<ControlPanelProps> = ({ onQueryRun }) => {
       setSelectedTile,
     } = useGlobalStore();
 
+  const {
+    maxHits,
+    minSimilarity,
+    magnificationList,
+    stainList,
+    samePatient,
+    sameWSI,
+    setMaxHits,
+    setMinSimilarity,
+    setMagnificationList,
+    setStainList,
+    setSamePatient,
+    setSameWSI,
+  } = useQueryStore();
+
   const [sampleID, setSampleId] = useState("");
   const [tileOption, setTileOption] = useState("none");
-  const [samePatientQuery, setSamePatientQuery] = useState("NA");
-  const [sameWsiQuery, setSameWsiQuery] = useState("NA");
+  const [samePatientQuery, setSamePatientQuery] = useState(samePatient === null ? "NA" : samePatient ? "same" : "other");
+  const [sameWsiQuery, setSameWsiQuery] = useState(sameWSI === null ? "NA" : sameWSI ? "same" : "other");
 
   return (
     <div className="control-panel" style={styles.panel}>
@@ -29,38 +45,90 @@ const ControlPanel: React.FC<ControlPanelProps> = ({ onQueryRun }) => {
           onChange={(e) => {
             setSelectedTile(null);
             setSampleId(e.target.value);
-          }
-          }
+          }}
           placeholder="Enter sample ID"
           style={styles.input}
         />
       </label>
       <button onClick={() => setCurrentSlide(sampleID)}>🔍</button>
       <br /><br />
+
       <Dropdown
         label="Tile Magnification:"
         value={tileOption}
-        options={["none", "5x", "10x", "20x"]}
+        options={["NA", "5x", "10x", "20x"]}
         onChange={(value) => {
           setTileOption(value);
           setViewMagnification(toTileMagnification(value));
         }}
       />
       <br /><br />
+
+      <h4>Query Options:</h4>
+
+      <label>
+        Max Hits:
+        <input
+          type="number"
+          value={maxHits}
+          onChange={(e) => setMaxHits(Number(e.target.value))}
+          style={styles.input}
+        />
+      </label>
+      <br /><br />
+
+      <label>
+        Min Similarity:
+        <input
+          type="number"
+          step="0.01"
+          value={minSimilarity}
+          onChange={(e) => setMinSimilarity(Number(e.target.value))}
+          style={styles.input}
+        />
+      </label>
+      <br /><br />
+
       <Dropdown
-        label="Patient Query Option:"
+        label="Patient Filter:"
         value={samePatientQuery}
         options={["NA", "same", "other"]}
-        onChange={setSamePatientQuery}
+        onChange={(value) => {
+          setSamePatientQuery(value);
+          setSamePatient(value === "same" ? true : value === "other" ? false : null);
+        }}
       />
       <br /><br />
+
       <Dropdown
-        label="WSI Query Option:"
+        label="WSI Filter:"
         value={sameWsiQuery}
         options={["NA", "same", "other"]}
-        onChange={setSameWsiQuery}
+        onChange={(value) => {
+          setSameWsiQuery(value);
+          setSameWSI(value === "same" ? true : value === "other" ? false : null);
+        }}
       />
       <br /><br />
+
+      <Dropdown
+        label="Magnifications:"
+        value={magnificationList ? magnificationList.join(", ") : "None"}
+        options={["NA", ...Object.values(TileMagnification)]}
+        onChange={(value) =>
+          setMagnificationList(value !== "NA" ? [value as TileMagnification] : null)
+        }
+      />
+      <br /><br />
+
+      <Dropdown
+        label="Stains:"
+        value={stainList ? stainList.join(", ") : "NA"}
+        options={["NA", ...Object.values(Stains)]}
+        onChange={(value) => setStainList(value !== "NA" ? [value as Stains] : null)}
+      />
+      <br /><br />
+
       <button onClick={onQueryRun}>RUN QUERY</button>
     </div>
   );

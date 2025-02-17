@@ -42,6 +42,7 @@ const TileComponent: React.FC<TileComponentProps> = ({ tile }) => {
     setCurrentSlide(extractFilename(tile.wsi_path));
     setSelectedTile(tile);
     setViewMagnification(tile.magnification);
+    
   };
 
   if (error) return <div className="error-message">{error}</div>;

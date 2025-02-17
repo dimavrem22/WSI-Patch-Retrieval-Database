@@ -25,6 +25,7 @@ const WSIViewer = () => {
     currentSlideMetadata,
     setCurrentSlideMetadata,
     viewMagnification,
+    center,
   } = useGlobalStore();
 
   const tileStyle = new Style({ stroke: new Stroke({ color: "red", width: 2 }) });

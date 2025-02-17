@@ -3,14 +3,22 @@ from pathlib import Path
 from typing import List, Tuple
 from pydantic import BaseModel
 from qdrant_client import QdrantClient
-from qdrant_client.models import VectorParams, PointStruct, Filter, FieldCondition, MatchValue, CollectionDescription, CollectionsResponse
+from qdrant_client.models import ( 
+    VectorParams,
+    PointStruct,
+    Filter,
+    FieldCondition,
+    MatchValue,
+    CollectionDescription,
+    CollectionsResponse
+)
 
 # Set the root directory dynamically
 ROOT_DIR = Path(__file__).resolve().parent.parent  # Adjust as needed
 sys.path.insert(0, str(ROOT_DIR))
 
 # Now import TilePayload
-from src.data_models import TilePayload
+from src.data_models import TilePayload, STAINS, MAGNIFICATIONS
 
 class TileVectorDB:
     def __init__(self, qdrant_address: str, collection_name: str) -> None:
@@ -31,7 +39,7 @@ class TileVectorDB:
         available_collections = [
             collection.name for collection in self.qdrant_client.get_collections().collections
         ]
-        print(f"Avaiable collections: {available_collections}")
+        print(f"Available collections: {available_collections}")
         if self.collection_name not in available_collections:
             raise Exception(f"Qdrant collection {self.collection_name} does not exist!")
 
@@ -76,7 +84,11 @@ class TileVectorDB:
         min_similarity: float | None = 0.75,
         same_patient: bool | None = None,
         same_wsi: bool | None = None,
+        magnification_list: List[MAGNIFICATIONS] | None = None,
+        stain_list: List[STAINS] | None = None,
     ) -> List[TilePayload]:
+
+        print(max_hits, min_similarity, same_patient, same_wsi, magnification_list, stain_list)
 
         # get query tile (payload and vector)
         payload, query_tile_vector = self.get_tile(tile_uuid=tile_uuid)
@@ -84,16 +96,35 @@ class TileVectorDB:
         print(payload)
 
         # create query filters
+        must_filters = []
+        must_not_filters = [FieldCondition(key="uuid", match=MatchValue(value=payload.uuid))]
+        should_filters = []
 
+        if same_patient is False:
+            must_not_filters.append(FieldCondition(key="patient_id", match=MatchValue(value=payload.patient_id)))
+        if same_patient:
+            must_filters.append(FieldCondition(key="patient_id", match=MatchValue(value=payload.patient_id)))
+        
+        if same_wsi:
+            must_filters.append(FieldCondition(key="wsi_path", match=MatchValue(value=payload.wsi_path)))
+
+        if magnification_list:
+            must_filters.append(FieldCondition(key="magnification", match=MatchValue(value=magnification_list[0].value)))
+        
+        if stain_list:
+            must_filters.append(FieldCondition(key="stain", match=MatchValue(value=stain_list[0].value)))
+        
         # run query
         search_result = self.qdrant_client.query_points(
             collection_name=self.collection_name,
             query=query_tile_vector,
             query_filter=Filter(
-                must_not=[FieldCondition(key="patient_id", match=MatchValue(value=payload.patient_id))]
+                must=must_filters,
+                must_not=must_not_filters,
+                should=should_filters
             ),
             with_payload=True,
-            score_threshold = min_similarity,
+            score_threshold=min_similarity,
             limit=max_hits,
         ).points
 

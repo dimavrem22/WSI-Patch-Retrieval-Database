@@ -1,7 +1,7 @@
 import sys
 from pathlib import Path
 from functools import lru_cache
-from fastapi import FastAPI
+from fastapi import FastAPI, Query
 from fastapi.middleware.cors import CORSMiddleware
 import openslide
 import io
@@ -12,6 +12,8 @@ from typing import Dict, Tuple, List
 from starlette.responses import StreamingResponse
 import json
 from src.qdrant_db import TileVectorDB
+from src.data_models import STAINS, MAGNIFICATIONS, TilePayload
+
 
 
 # Setup tile vector database
@@ -128,17 +130,28 @@ def get_tile_image(wsi_path: str, x: int, y: int, size: int) -> StreamingRespons
 @app.get("/query_similar_tiles/")
 def query_similar_tiles(
     tile_uuid: str,
-    same_pt: bool|None = None,
-    same_wsi: bool|None = None,
-    same_dataset: bool|None = None,
-    same_magnification: bool|None = None,
     max_hits: int = 5,
     min_score: float | None = None,
-) -> List:
+    same_pt: bool | None = None,
+    same_wsi: bool | None = None,
+    magnification_list: List[MAGNIFICATIONS] = Query(default=[]),  # Ensure lists are properly parsed
+    stain_list: List[STAINS] = Query(default=[]),
+) -> List[TilePayload]:
 
-    print(f"running similarity query for tile id: {tile_uuid}")
-    
-    return db.run_query(tile_uuid=tile_uuid)
+    print(f"Running similarity query for tile ID: {tile_uuid}")
+    print(f"Max Hits: {max_hits}, Min Score: {min_score}")
+    print(f"Same Patient: {same_pt}, Same WSI: {same_wsi}")
+    print(f"Magnification List: {magnification_list}, Stain List: {stain_list}")
+
+    return db.run_query(
+        tile_uuid=tile_uuid,
+        max_hits=max_hits,
+        min_similarity=min_score,
+        same_patient=same_pt,
+        same_wsi=same_wsi,
+        magnification_list=magnification_list,
+        stain_list=stain_list,
+    )
 
 
 def resize_and_fill(

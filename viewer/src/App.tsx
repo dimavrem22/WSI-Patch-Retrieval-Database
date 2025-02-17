@@ -4,6 +4,7 @@ import WSIViewer from "./components/WSIViewer";
 import ControlPanel from "./components/ControlPanel";
 import QueryResults from "./components/QueryResults";
 import { useGlobalStore } from "./store/useGlobalStore";
+import { useQueryStore } from "./store/useQueryStore";
 
 const App = () => {
   const {
@@ -12,27 +13,55 @@ const App = () => {
     setQueryTile,
     queryTile,
     queryResults,
-    queryControls,
     setQueryResults,
-    setQueryControls,
   } = useGlobalStore();
+
+  const {
+    maxHits,
+    minSimilarity,
+    magnificationList,
+    stainList,
+    samePatient,
+    sameWSI,
+  } = useQueryStore();
+
+
 
   const querySimilarTiles = async () => {
     if (!selectedTile) return;
     try {
-      setQueryTile(selectedTile);
-      setQueryResults([]);
-      console.log("running query for: ", selectedTile.uuid)
+        setQueryTile(selectedTile);
+        setQueryResults([]);
+        console.log("Running query for tile:", selectedTile.uuid);
 
-      setQueryControls({ ...queryControls, tileUuid: selectedTile.uuid });
-      const response = await fetch(`http://localhost:8000/query_similar_tiles/?tile_uuid=${selectedTile.uuid}`);
-      if (!response.ok) throw new Error("Failed to fetch similar tiles");
-      setQueryResults(await response.json());
+        const params = new URLSearchParams();
+        params.append("tile_uuid", selectedTile.uuid);
+        params.append("max_hits", maxHits.toString());
+        params.append("min_score", minSimilarity.toString());
+
+        if (samePatient !== null) params.append("same_pt", samePatient.toString());
+        if (sameWSI !== null) params.append("same_wsi", sameWSI.toString());
+
+        if (magnificationList && magnificationList.length > 0) {
+            magnificationList.forEach(m => params.append("magnification_list", m));
+        }
+
+        if (stainList && stainList.length > 0) {
+            stainList.forEach(s => params.append("stain_list", s));
+        }
+
+        console.log("Final query params:", params.toString());
+
+        const response = await fetch(`http://localhost:8000/query_similar_tiles/?${params.toString()}`);
+        if (!response.ok) throw new Error("Failed to fetch similar tiles");
+
+        const data = await response.json();
+        setQueryResults(data);
     } catch (error) {
-      console.error("Error querying similar tiles:", error);
-      setQueryResults(null);
+        console.error("Error querying similar tiles:", error);
+        setQueryResults(null);
     }
-  };
+};
 
   useEffect(() => {
     if (!currentSlideID) return;
