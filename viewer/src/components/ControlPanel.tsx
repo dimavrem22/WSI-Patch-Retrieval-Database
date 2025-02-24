@@ -28,12 +28,14 @@ const ControlPanel: React.FC<ControlPanelProps> = ({ onQueryRun }) => {
     setStainList,
     setSamePatient,
     setSameWSI,
+    setTagFilter,
   } = useQueryStore();
 
   const [sampleID, setSampleId] = useState("");
   const [tileOption, setTileOption] = useState("none");
   const [samePatientQuery, setSamePatientQuery] = useState(samePatient === null ? "NA" : samePatient ? "same" : "other");
   const [sameWsiQuery, setSameWsiQuery] = useState(sameWSI === null ? "NA" : sameWSI ? "same" : "other");
+  const [tagFilter, setTagFilterState] = useState("");
 
   return (
     <div className="control-panel" style={styles.panel}>
@@ -127,6 +129,22 @@ const ControlPanel: React.FC<ControlPanelProps> = ({ onQueryRun }) => {
         options={["NA", ...Object.values(Stains)]}
         onChange={(value) => setStainList(value !== "NA" ? [value as Stains] : null)}
       />
+      <br /><br />
+      
+      <label>
+        Tag Filter:
+        <input
+          type="text"
+          value={tagFilter}
+          onChange={(e) => {
+            const value = e.target.value;
+            setTagFilterState(value);
+            setTagFilter(value.trim() === "" ? null : value);
+          }}
+          placeholder="Enter tag filter"
+          style={styles.input}
+        />
+      </label>
       <br /><br />
 
       <button onClick={onQueryRun}>RUN QUERY</button>

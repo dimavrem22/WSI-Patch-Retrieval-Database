@@ -23,6 +23,7 @@ const App = () => {
     stainList,
     samePatient,
     sameWSI,
+    tagFilter,
   } = useQueryStore();
 
 
@@ -38,6 +39,10 @@ const App = () => {
         params.append("tile_uuid", selectedTile.uuid);
         params.append("max_hits", maxHits.toString());
         params.append("min_score", minSimilarity.toString());
+
+        if (tagFilter) {
+          params.append("tag_filter", tagFilter.toString());
+        }
 
         if (samePatient !== null) params.append("same_pt", samePatient.toString());
         if (sameWSI !== null) params.append("same_wsi", sameWSI.toString());
@@ -80,7 +85,7 @@ const App = () => {
             <WSIViewer/>
           ) : (
             <div className="flex items-center justify-center h-full text-gray-500">
-              Please search for a sample to display the viewer.
+              Please search for a sample to display in the viewer.
             </div>
           )}
         </Panel>

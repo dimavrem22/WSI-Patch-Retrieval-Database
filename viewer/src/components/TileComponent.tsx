@@ -56,7 +56,8 @@ const TileComponent: React.FC<TileComponentProps> = ({ tile }) => {
         <span><strong>Dataset:</strong> {tile.dataset}, </span>
         <span><strong>Mag:</strong> {tile.magnification}, </span>
         <span><strong>Patient:</strong> {tile.patient_id}, </span>
-        <span><strong>Stain:</strong> {tile.stain}</span>
+        <span><strong>Stain:</strong> {tile.stain}, </span>
+        <span><strong>Tags:</strong> [{tile.tags.length > 0 ? tile.tags.join(", ") : "None"}]</span>
       </div>  
     </div>
   );

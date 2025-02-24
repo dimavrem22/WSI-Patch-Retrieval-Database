@@ -9,6 +9,7 @@ interface QueryParameters {
     stainList: Stains[] | null;
     samePatient: boolean | null;
     sameWSI: boolean | null;
+    tagFilter: string | null;
   
     setMaxHits: (maxHits: number) => void;
     setMinSimilarity: (minSimilarity: number) => void;
@@ -16,6 +17,7 @@ interface QueryParameters {
     setStainList: (stainList: Stains[] | null) => void;
     setSamePatient: (samePatient: boolean | null) => void;
     setSameWSI: (sameWSI: boolean | null) => void;
+    setTagFilter: (tagFilter: string | null) => void;
   }
   
   export const useQueryStore = create<QueryParameters>((set) => ({
@@ -25,6 +27,7 @@ interface QueryParameters {
     stainList: null,
     samePatient: null,
     sameWSI: null,
+    tagFilter: null,
   
     setMaxHits: (maxHits) => set({ maxHits }),
     setMinSimilarity: (minSimilarity) => set({ minSimilarity }),
@@ -32,5 +35,6 @@ interface QueryParameters {
     setStainList: (stainList) => set({ stainList }),
     setSamePatient: (samePatient) => set({ samePatient }),
     setSameWSI: (sameWSI) => set({ sameWSI }),
+    setTagFilter: (tagFilter) => set({ tagFilter }),
   }));
   

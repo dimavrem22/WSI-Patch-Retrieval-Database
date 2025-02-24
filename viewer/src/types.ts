@@ -33,6 +33,7 @@ export type Tile = {
   y: number;
   size: number;
   score: number | null;
+  tags: string[];
 };
 
 export type SlideMetadata = {

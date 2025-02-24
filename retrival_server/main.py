@@ -13,11 +13,12 @@ from starlette.responses import StreamingResponse
 import json
 from src.qdrant_db import TileVectorDB
 from src.data_models import STAINS, MAGNIFICATIONS, TilePayload
-
+ 
 
 
 # Setup tile vector database
-db = TileVectorDB("http://localhost:8080", "demo_collection")
+db = TileVectorDB("http://localhost:8080", "demo_lung_cancer")
+# db = TileVectorDB("http://localhost:8080", "demo_collection_big")
 
 app = FastAPI()
 
@@ -30,7 +31,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-SAMPLE_ID_TO_WSI_PATH = "../TEST/SAMPLE_ID_TO_WSI.json"
+SAMPLE_ID_TO_WSI_PATH = "../TEST/DFCI_sample_ID_to_WSI.json"
+# SAMPLE_ID_TO_WSI_PATH = "/home/dmv626/WSI-Patch-Retrieval-Database/TEST/SAMPLE_ID_TO_WSI_BIG.json"
+
 with open(SAMPLE_ID_TO_WSI_PATH, "r") as f:
     SAMPLE_ID_TO_WSI = json.load(f)
     WSI_TO_SAMPLE_ID = {v: k for k, v in SAMPLE_ID_TO_WSI.items()}
@@ -124,8 +127,7 @@ def get_tile_image(wsi_path: str, x: int, y: int, size: int) -> StreamingRespons
     # Resize tile to 256x256
     tile = tile.resize((256, 256))
 
-    return stream_tile(tile)
-
+    return stream_tile(tile) 
 
 @app.get("/query_similar_tiles/")
 def query_similar_tiles(
@@ -136,12 +138,10 @@ def query_similar_tiles(
     same_wsi: bool | None = None,
     magnification_list: List[MAGNIFICATIONS] = Query(default=[]),  # Ensure lists are properly parsed
     stain_list: List[STAINS] = Query(default=[]),
+    tag_filter: str | None = None,
 ) -> List[TilePayload]:
 
     print(f"Running similarity query for tile ID: {tile_uuid}")
-    print(f"Max Hits: {max_hits}, Min Score: {min_score}")
-    print(f"Same Patient: {same_pt}, Same WSI: {same_wsi}")
-    print(f"Magnification List: {magnification_list}, Stain List: {stain_list}")
 
     return db.run_query(
         tile_uuid=tile_uuid,
@@ -151,6 +151,7 @@ def query_similar_tiles(
         same_wsi=same_wsi,
         magnification_list=magnification_list,
         stain_list=stain_list,
+        tag_filter=tag_filter,
     )
 
 

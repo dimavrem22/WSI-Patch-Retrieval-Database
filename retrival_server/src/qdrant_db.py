@@ -74,7 +74,7 @@ class TileVectorDB:
             
             if next_page is None:  # No more data left
                 break
-        print(len(all_tiles))
+
         return all_tiles
     
     def run_query(
@@ -86,14 +86,11 @@ class TileVectorDB:
         same_wsi: bool | None = None,
         magnification_list: List[MAGNIFICATIONS] | None = None,
         stain_list: List[STAINS] | None = None,
+        tag_filter: str | None = None,
     ) -> List[TilePayload]:
-
-        print(max_hits, min_similarity, same_patient, same_wsi, magnification_list, stain_list)
-
+    
         # get query tile (payload and vector)
         payload, query_tile_vector = self.get_tile(tile_uuid=tile_uuid)
-
-        print(payload)
 
         # create query filters
         must_filters = []
@@ -115,6 +112,11 @@ class TileVectorDB:
         
         if stain_list:
             must_filters.append(FieldCondition(key="stain", match=MatchValue(value=stain_list[0].value)))
+
+        if tag_filter:
+            tags = [tag.strip() for tag in tag_filter.split(",")]
+            for tag in tags:
+                must_filters.append(FieldCondition(key="tags", match=MatchValue(value=tag)))
         
         # run query
         search_result = self.qdrant_client.query_points(
