@@ -1,19 +1,18 @@
 import { useState } from "react";
 import { toTileMagnification, TileMagnification, Stains } from "../types";
 import { useGlobalStore } from "../store/useGlobalStore";
-import { useQueryStore } from "../store/useQueryStore";
+import { useQueryStore } from "../store/useTileSearchStore";
 
 interface ControlPanelProps {
   onQueryRun: () => void;
 }
 
 const ControlPanel: React.FC<ControlPanelProps> = ({ onQueryRun }) => {
-  
   const {
-      setViewMagnification,
-      setCurrentSlide,
-      setSelectedTile,
-    } = useGlobalStore();
+    setViewMagnification,
+    setCurrentSlide,
+    setSelectedTile,
+  } = useGlobalStore();
 
   const {
     maxHits,
@@ -36,6 +35,7 @@ const ControlPanel: React.FC<ControlPanelProps> = ({ onQueryRun }) => {
   const [samePatientQuery, setSamePatientQuery] = useState(samePatient === null ? "NA" : samePatient ? "same" : "other");
   const [sameWsiQuery, setSameWsiQuery] = useState(sameWSI === null ? "NA" : sameWSI ? "same" : "other");
   const [tagFilter, setTagFilterState] = useState("");
+  const [queryOptionsVisible, setQueryOptionsVisible] = useState(false);
 
   return (
     <div className="control-panel" style={styles.panel}>
@@ -66,88 +66,94 @@ const ControlPanel: React.FC<ControlPanelProps> = ({ onQueryRun }) => {
       />
       <br /><br />
 
-      <h4>Query Options:</h4>
-
-      <label>
-        Max Hits:
-        <input
-          type="number"
-          value={maxHits}
-          onChange={(e) => setMaxHits(Number(e.target.value))}
-          style={styles.input}
-        />
-      </label>
+      <button onClick={() => setQueryOptionsVisible(!queryOptionsVisible)} style={styles.fullWidthButton}>
+        Tile Similarity Search {queryOptionsVisible ? "▼" : "▶"}
+      </button>
       <br /><br />
 
-      <label>
-        Min Similarity:
-        <input
-          type="number"
-          step="0.01"
-          value={minSimilarity}
-          onChange={(e) => setMinSimilarity(Number(e.target.value))}
-          style={styles.input}
-        />
-      </label>
-      <br /><br />
+      {queryOptionsVisible && (
+        <div>
+          <label>
+            Max Hits:
+            <input
+              type="number"
+              value={maxHits}
+              onChange={(e) => setMaxHits(Number(e.target.value))}
+              style={styles.input}
+            />
+          </label>
+          <br /><br />
 
-      <Dropdown
-        label="Patient Filter:"
-        value={samePatientQuery}
-        options={["NA", "same", "other"]}
-        onChange={(value) => {
-          setSamePatientQuery(value);
-          setSamePatient(value === "same" ? true : value === "other" ? false : null);
-        }}
-      />
-      <br /><br />
+          <label>
+            Min Similarity:
+            <input
+              type="number"
+              step="0.01"
+              value={minSimilarity}
+              onChange={(e) => setMinSimilarity(Number(e.target.value))}
+              style={styles.input}
+            />
+          </label>
+          <br /><br />
 
-      <Dropdown
-        label="WSI Filter:"
-        value={sameWsiQuery}
-        options={["NA", "same", "other"]}
-        onChange={(value) => {
-          setSameWsiQuery(value);
-          setSameWSI(value === "same" ? true : value === "other" ? false : null);
-        }}
-      />
-      <br /><br />
+          <Dropdown
+            label="Patient Filter:"
+            value={samePatientQuery}
+            options={["NA", "same", "other"]}
+            onChange={(value) => {
+              setSamePatientQuery(value);
+              setSamePatient(value === "same" ? true : value === "other" ? false : null);
+            }}
+          />
+          <br /><br />
 
-      <Dropdown
-        label="Magnifications:"
-        value={magnificationList ? magnificationList.join(", ") : "None"}
-        options={["NA", ...Object.values(TileMagnification)]}
-        onChange={(value) =>
-          setMagnificationList(value !== "NA" ? [value as TileMagnification] : null)
-        }
-      />
-      <br /><br />
+          <Dropdown
+            label="WSI Filter:"
+            value={sameWsiQuery}
+            options={["NA", "same", "other"]}
+            onChange={(value) => {
+              setSameWsiQuery(value);
+              setSameWSI(value === "same" ? true : value === "other" ? false : null);
+            }}
+          />
+          <br /><br />
 
-      <Dropdown
-        label="Stains:"
-        value={stainList ? stainList.join(", ") : "NA"}
-        options={["NA", ...Object.values(Stains)]}
-        onChange={(value) => setStainList(value !== "NA" ? [value as Stains] : null)}
-      />
-      <br /><br />
-      
-      <label>
-        Tag Filter:
-        <input
-          type="text"
-          value={tagFilter}
-          onChange={(e) => {
-            const value = e.target.value;
-            setTagFilterState(value);
-            setTagFilter(value.trim() === "" ? null : value);
-          }}
-          placeholder="Enter tag filter"
-          style={styles.input}
-        />
-      </label>
-      <br /><br />
+          <Dropdown
+            label="Magnifications:"
+            value={magnificationList ? magnificationList.join(", ") : "None"}
+            options={["NA", ...Object.values(TileMagnification)]}
+            onChange={(value) =>
+              setMagnificationList(value !== "NA" ? [value as TileMagnification] : null)
+            }
+          />
+          <br /><br />
 
-      <button onClick={onQueryRun}>RUN QUERY</button>
+          <Dropdown
+            label="Stains:"
+            value={stainList ? stainList.join(", ") : "NA"}
+            options={["NA", ...Object.values(Stains)]}
+            onChange={(value) => setStainList(value !== "NA" ? [value as Stains] : null)}
+          />
+          <br /><br />
+
+          <label>
+            Tag Filter:
+            <input
+              type="text"
+              value={tagFilter}
+              onChange={(e) => {
+                const value = e.target.value;
+                setTagFilterState(value);
+                setTagFilter(value.trim() === "" ? null : value);
+              }}
+              placeholder="Enter tag filter"
+              style={styles.input}
+            />
+          </label>
+          <br /><br />
+          <button onClick={onQueryRun}>SEARCH</button>
+        </div>
+      )}
     </div>
   );
 };
@@ -174,6 +180,7 @@ const styles = {
   panel: { padding: "10px", border: "1px solid #ccc" },
   input: { marginLeft: "10px", padding: "5px", width: "150px" },
   select: { marginLeft: "10px", padding: "5px" },
+  fullWidthButton: { width: "100%", padding: "10px", fontSize: "16px" },
 };
 
 export default ControlPanel;

@@ -4,7 +4,7 @@ import WSIViewer from "./components/WSIViewer";
 import ControlPanel from "./components/ControlPanel";
 import QueryResults from "./components/QueryResults";
 import { useGlobalStore } from "./store/useGlobalStore";
-import { useQueryStore } from "./store/useQueryStore";
+import { useQueryStore } from "./store/useTileSearchStore";
 
 const App = () => {
   const {
