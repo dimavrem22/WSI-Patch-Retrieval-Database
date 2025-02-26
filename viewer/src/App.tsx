@@ -27,7 +27,6 @@ const App = () => {
   } = useQueryStore();
 
 
-
   const querySimilarTiles = async () => {
     if (!selectedTile) return;
     try {
