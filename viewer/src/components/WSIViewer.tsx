@@ -15,9 +15,7 @@ import { Tile } from "../types";
 import { useGlobalStore } from "../store/useGlobalStore";
 import "ol/ol.css";
 
-
 const WSIViewer = () => {
-
   const {
     currentSlideID,
     selectedTile,
@@ -25,7 +23,6 @@ const WSIViewer = () => {
     currentSlideMetadata,
     setCurrentSlideMetadata,
     viewMagnification,
-    center,
   } = useGlobalStore();
 
   const tileStyle = new Style({ stroke: new Stroke({ color: "red", width: 2 }) });
@@ -37,7 +34,6 @@ const WSIViewer = () => {
   const mapRef = useRef<HTMLDivElement>(null);
   const vectorSourceRef = useRef(new VectorSource());
   const lastHighlightedFeature = useRef<Feature<Geometry> | null>(null);
-
 
   useEffect(() => {
     const fetchMetadata = async () => {
@@ -54,14 +50,14 @@ const WSIViewer = () => {
 
   useEffect(() => {
     if (!mapRef.current || !currentSlideMetadata) return;
-  
+
     const slideGrid = new TileGrid({
       extent: currentSlideMetadata.extent,
       tileSize: [256, 256],
-      minZoom: currentSlideMetadata.minZoom-2,
+      minZoom: currentSlideMetadata.minZoom - 2,
       resolutions: currentSlideMetadata.resolutions,
     });
-  
+
     const tileLayer = new TileLayer({
       source: new XYZ({
         url: `http://localhost:8080/tiles/{z}/{x}/{y}/?sample_id=${currentSlideID}`,
@@ -69,39 +65,66 @@ const WSIViewer = () => {
         tileGrid: slideGrid,
       }),
     });
-  
+
     const vectorLayer = new VectorLayer({ source: vectorSourceRef.current });
 
-    // if a tile is selected, have it be the center and zoomed in
     let center = [
       currentSlideMetadata.extent[0] + (currentSlideMetadata.extent[2] - currentSlideMetadata.extent[0]) / 2,
       currentSlideMetadata.extent[1] + (currentSlideMetadata.extent[3] - currentSlideMetadata.extent[1]) / 2,
-    ]
-    let zoom = currentSlideMetadata.minZoom
+    ];
+    let zoom = currentSlideMetadata.minZoom;
     if (selectedTile) {
       center = [
         selectedTile.x + selectedTile.size / 2,
-        currentSlideMetadata.extent[3] - selectedTile.y - selectedTile.size / 2
+        currentSlideMetadata.extent[3] - selectedTile.y - selectedTile.size / 2,
       ];
-      zoom = currentSlideMetadata.maxZoom-2;
+      zoom = currentSlideMetadata.maxZoom - 2;
     }
 
+    let newExtent = currentSlideMetadata.extent;
+
+    if (currentSlideMetadata.extent[3] > currentSlideMetadata.extent[2]){
+      newExtent = [
+        0 - (currentSlideMetadata.extent[3]-currentSlideMetadata.extent[2]) /2,
+        0, 
+        currentSlideMetadata.extent[2] + (currentSlideMetadata.extent[3]-currentSlideMetadata.extent[2]) /2,
+        currentSlideMetadata.extent[3],
+      ];
+    } else {
+      newExtent = [
+        0,
+        0 - (currentSlideMetadata.extent[2]-currentSlideMetadata.extent[3]) /2,
+        currentSlideMetadata.extent[2],
+        currentSlideMetadata.extent[3] + (currentSlideMetadata.extent[2]-currentSlideMetadata.extent[3]) /2,
+      ];
+    }
+
+    console.log(newExtent);
+
+    const view = new View({
+      projection: "EPSG:3857",
+      center: center,
+      zoom: zoom,
+      minZoom: 0,
+      maxZoom: currentSlideMetadata.maxZoom + 2,
+      constrainResolution: false,
+      extent: newExtent,
+    });
+    
     const mapInstance = new Map({
       target: mapRef.current,
       layers: [tileLayer, vectorLayer],
       controls: defaultControls({ zoom: false, rotate: false }),
       interactions: defaultInteractions({ doubleClickZoom: false }),
-      view: new View({
-        projection: "EPSG:3857",
-        center: center,
-        zoom: zoom,
-        minZoom: currentSlideMetadata.minZoom-2,
-        maxZoom: currentSlideMetadata.maxZoom+2,
-        extent: currentSlideMetadata.extent,
-      }),
+      view: view,
     });
-  
-    // Handle tile selection
+    
+    // Fit the view to ensure the entire WSI is visible at startup
+    view.fit(currentSlideMetadata.extent, {
+      size: mapInstance.getSize(),
+      padding: [50, 50, 50, 50], // Optional padding
+    });
+
     mapInstance.on("singleclick", (event) => {
       const clickedCoords = event.coordinate;
       let selectedTile = null;
@@ -111,47 +134,44 @@ const WSIViewer = () => {
           selectedTile = currentSlideMetadata.tiles.find((tile) => tile.uuid === feature.get("name"));
         }
       });
-  
+
       setSelectedTile(selectedTile || null);
       highlightTile(selectedTile);
     });
-  
-    // Cleanup function to remove the previous map instance
+
     return () => {
       mapInstance.setTarget(undefined);
       mapInstance.dispose();
     };
   }, [currentSlideMetadata]);
-  
 
   useEffect(() => {
     if (!currentSlideMetadata || !vectorSourceRef.current) return;
-  
+
     const vectorSource = vectorSourceRef.current;
     vectorSource.clear();
-  
+
     const features = currentSlideMetadata.tiles
       .filter((tile) => tile.magnification === viewMagnification)
       .map((tile) => {
         const x = currentSlideMetadata.extent[0] + tile.x;
         const y = currentSlideMetadata.extent[3] - tile.y - tile.size;
-  
+
         return new Feature({
           geometry: new Polygon([[[x, y], [x + tile.size, y], [x + tile.size, y + tile.size], [x, y + tile.size], [x, y]]]),
           name: tile.uuid,
           style: tileStyle,
         });
       });
-  
+
     vectorSource.addFeatures(features);
     highlightTile(selectedTile);
-  
-  }, [viewMagnification, currentSlideMetadata, selectedTile])
+  }, [viewMagnification, currentSlideMetadata, selectedTile]);
 
   const highlightTile = (tile: Tile | null) => {
-
-    // this rerenders the entire tile grid (prevents highlight of multiple tiles)
-    vectorSourceRef.current.forEachFeature((feature) => {feature.setStyle(tileStyle);});
+    vectorSourceRef.current.forEachFeature((feature) => {
+      feature.setStyle(tileStyle);
+    });
 
     if (tile) {
       const selectedFeature = vectorSourceRef.current.getFeatures().find((f) => f.get("name") === tile.uuid);
@@ -163,9 +183,6 @@ const WSIViewer = () => {
       lastHighlightedFeature.current = null;
     }
   };
-
-
-  
 
   if (!currentSlideMetadata) return <div>Loading metadata...</div>;
 
