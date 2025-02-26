@@ -8,7 +8,7 @@ Ensure you have the following installed:
 - [Python 3.x](https://www.python.org/downloads/)
 - [Node.js & npm](https://nodejs.org/)
 
-## Installation & Setup
+## Installation
 
 ### 1. Clone the Repository
 ```sh
@@ -16,20 +16,35 @@ git clone https://github.com/dimavrem22/WSI-Patch-Retrieval-Database.git
 cd WSI-Patch-Retrieval-Database
 ```
 
-### 2. Setup and Start the Retrieval Server
+### 2. Setup the Retrieval Server
 ```sh
 cd retrival_server
 conda env create -f environment.yaml
+```
+
+### 3. Setup the Frontend Viewer
+```sh
+cd viewer
+npm install
+```
+
+## Running the Application
+
+### Start the Retrieval Server
+```sh
+cd retrival_server
 conda activate wsi-server
 python -m uvicorn simple:app --host 0.0.0.0 --port 8000 --reload
 ```
 
-### 3. Setup and Start the Frontend Viewer
+### Start the Frontend Viewer
 ```sh
-npm install
+cd viewer
 npm run dev
 ```
 
 ## Usage
 - The backend server runs on `http://0.0.0.0:8000/`
 - The frontend viewer runs on `http://localhost:5173/`
+
+
