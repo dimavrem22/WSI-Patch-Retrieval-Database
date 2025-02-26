@@ -42,7 +42,7 @@ const WSIViewer = () => {
   useEffect(() => {
     const fetchMetadata = async () => {
       try {
-        const response = await fetch(`http://localhost:8000/metadata/?sample_id=${currentSlideID}`);
+        const response = await fetch(`http://localhost:8080/metadata/?sample_id=${currentSlideID}`);
         if (!response.ok) throw new Error("Failed to fetch metadata");
         setCurrentSlideMetadata(await response.json());
       } catch (error) {
@@ -64,7 +64,7 @@ const WSIViewer = () => {
   
     const tileLayer = new TileLayer({
       source: new XYZ({
-        url: `http://localhost:8000/tiles/{z}/{x}/{y}/?sample_id=${currentSlideID}`,
+        url: `http://localhost:8080/tiles/{z}/{x}/{y}/?sample_id=${currentSlideID}`,
         crossOrigin: "anonymous",
         tileGrid: slideGrid,
       }),

@@ -56,7 +56,7 @@ const App = () => {
 
         console.log("Final query params:", params.toString());
 
-        const response = await fetch(`http://localhost:8000/query_similar_tiles/?${params.toString()}`);
+        const response = await fetch(`http://localhost:8080/query_similar_tiles/?${params.toString()}`);
         if (!response.ok) throw new Error("Failed to fetch similar tiles");
 
         const data = await response.json();
@@ -69,7 +69,7 @@ const App = () => {
 
   useEffect(() => {
     if (!currentSlideID) return;
-    fetch(`http://localhost:8000/load_wsi/?sample_id=${currentSlideID}`).then((res) => res.json());
+    fetch(`http://localhost:8080/load_wsi/?sample_id=${currentSlideID}`).then((res) => res.json());
   }, [currentSlideID]);
 
   return (
