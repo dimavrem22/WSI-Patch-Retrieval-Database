@@ -8,6 +8,9 @@ import { useQueryStore } from "./store/useTileSearchStore";
 import { useTileHeatmapParamsStore } from "./store/useTileHeatmapStore";
 
 const App = () => {
+
+  const serverURL = import.meta.env.VITE_SERVER_URL
+
   const {
     currentSlideID,
     selectedTile,
@@ -62,7 +65,7 @@ const App = () => {
 
         console.log("Final query params:", params.toString());
 
-        const response = await fetch(`http://localhost:8000/query_similar_tiles/?${params.toString()}`);
+        const response = await fetch(`${serverURL}/query_similar_tiles/?${params.toString()}`);
         if (!response.ok) throw new Error("Failed to fetch similar tiles");
 
         const data = await response.json();
@@ -86,7 +89,7 @@ const querySimilarTilesHeatmap = async () => {
     params.append("tile_uuid", selectedTile.uuid);
     console.log("Final query params:", params.toString());
 
-    const response = await fetch(`http://localhost:8000/similar_tiles_heatmap/?${params.toString()}`);
+    const response = await fetch(`${serverURL}/similar_tiles_heatmap/?${params.toString()}`);
           if (!response.ok) throw new Error("Failed to fetch heatmap tiles");
 
           const data = await response.json();
@@ -101,7 +104,7 @@ const querySimilarTilesHeatmap = async () => {
 
   useEffect(() => {
     if (!currentSlideID) return;
-    fetch(`http://localhost:8000/load_wsi/?sample_id=${currentSlideID}`).then((res) => res.json());
+    fetch(`${serverURL}/load_wsi/?sample_id=${currentSlideID}`).then((res) => res.json());
   }, [currentSlideID]);
 
   return (

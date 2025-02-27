@@ -90,42 +90,6 @@ def get_tile(sample_id: str, z: int, x: int, y: int) -> StreamingResponse:
         tile = Image.new("RGB", (256, 256), (255, 255, 255))
     return stream_tile(tile)
 
-@app.get("/tile_image/")
-def get_tile_image(wsi_path: str, x: int, y: int, size: int) -> StreamingResponse:
-    slide = OpenSlide(wsi_path)
-
-    # Get the best level that can give us a 256x256 tile efficiently
-    best_level = slide.get_best_level_for_downsample(size / 256)
-    level_downsample = slide.level_downsamples[best_level]
-
-    # Scale x, y, and size to match the selected level
-    adj_x = int(x / level_downsample)
-    adj_y = int(y / level_downsample)
-    adj_size = int(size / level_downsample)
-
-    # Read the adjusted region at the selected level
-    tile = slide.read_region((adj_x, adj_y), best_level, (adj_size, adj_size))
-
-    # Resize tile to 256x256
-    tile = tile.resize((256, 256))
-
-    return stream_tile(tile) 
-
-# @app.get("/query_similar_tiles/")
-# def query_similar_tiles(
-#     tile_uuid: str,
-#     max_hits: int = 5,
-#     min_score: float | None = None,
-#     same_pt: bool | None = None,
-#     same_wsi: bool | None = None,
-#     magnification_list: List[MAGNIFICATIONS] = Query(default=[]),  # Ensure lists are properly parsed
-#     stain_list: List[STAINS] = Query(default=[]),
-#     tag_filter: str | None = None,
-# ) -> List[TilePayload]:
-
-#     print(f"Running similarity query for tile ID: {tile_uuid}")
-#     return []
-
 
 def resize_and_fill(
     image: Image,

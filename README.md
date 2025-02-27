@@ -25,8 +25,11 @@ conda env create -f environment.yaml
 ### 3. Setup the Frontend Viewer
 ```sh
 cd viewer
+echo 'VITE_SERVER_URL="http://localhost:8000"' > .env
 npm install
 ```
+
+Ensure you specify the correct port in which you intend to run your backend server!
 
 ## Running the Application
 

@@ -9,6 +9,8 @@ interface TileComponentProps {
 
 const TileComponent: React.FC<TileComponentProps> = ({ tile }) => {
 
+  const serverURL = import.meta.env.VITE_SERVER_URL
+
   const {
     setCurrentSlide,
     setSelectedTile,
@@ -22,7 +24,7 @@ const TileComponent: React.FC<TileComponentProps> = ({ tile }) => {
     const fetchTileImage = async () => {
       try {
         const response = await fetch(
-          `http://localhost:8000/tile_image/?wsi_path=${tile.wsi_path}&x=${tile.x}&y=${tile.y}&size=${tile.size}`
+          `${serverURL}/tile_image/?wsi_path=${tile.wsi_path}&x=${tile.x}&y=${tile.y}&size=${tile.size}`
         );
         if (!response.ok) {
           throw new Error("Failed to load tile image");

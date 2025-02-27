@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import Map from "ol/Map";
 import View from "ol/View";
 import TileLayer from "ol/layer/Tile";
@@ -16,7 +16,11 @@ import { useGlobalStore } from "../store/useGlobalStore";
 import { useTileHeatmapParamsStore } from "../store/useTileHeatmapStore";
 import "ol/ol.css";
 
+
 const WSIViewer = () => {
+
+  const serverURL = import.meta.env.VITE_SERVER_URL
+
   const {
     currentSlideID,
     selectedTile,
@@ -44,7 +48,7 @@ const WSIViewer = () => {
   useEffect(() => {
     const fetchMetadata = async () => {
       try {
-        const response = await fetch(`http://localhost:8000/metadata/?sample_id=${currentSlideID}`);
+        const response = await fetch(`${serverURL}/metadata/?sample_id=${currentSlideID}`);
         if (!response.ok) throw new Error("Failed to fetch metadata");
         setCurrentSlideMetadata(await response.json());
       } catch (error) {
@@ -66,7 +70,7 @@ const WSIViewer = () => {
 
     const tileLayer = new TileLayer({
       source: new XYZ({
-        url: `http://localhost:8000/tiles/{z}/{x}/{y}/?sample_id=${currentSlideID}`,
+        url: `${serverURL}/tiles/{z}/{x}/{y}/?sample_id=${currentSlideID}`,
         crossOrigin: "anonymous",
         tileGrid: slideGrid,
       }),
@@ -95,7 +99,7 @@ const WSIViewer = () => {
       center[0] + 1 * maxDim,
       center[1] + 1 * maxDim,
     ];
-    
+
     const view = new View({
       projection: "EPSG:3857",
       center: center,
