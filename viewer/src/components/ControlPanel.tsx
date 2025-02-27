@@ -2,16 +2,20 @@ import { useState } from "react";
 import { toTileMagnification, TileMagnification, Stains } from "../types";
 import { useGlobalStore } from "../store/useGlobalStore";
 import { useQueryStore } from "../store/useTileSearchStore";
+import { useTileHeatmapParamsStore } from "../store/useTileHeatmapStore";
 
 interface ControlPanelProps {
   onQueryRun: () => void;
+  onTileHeatmapQuery: () => void;
 }
 
-const ControlPanel: React.FC<ControlPanelProps> = ({ onQueryRun }) => {
+const ControlPanel: React.FC<ControlPanelProps> = ({ onQueryRun, onTileHeatmapQuery}) => {
   const {
+    selectedTile,
     setViewMagnification,
     setCurrentSlide,
     setSelectedTile,
+    heatmap,
   } = useGlobalStore();
 
   const {
@@ -30,12 +34,21 @@ const ControlPanel: React.FC<ControlPanelProps> = ({ onQueryRun }) => {
     setTagFilter,
   } = useQueryStore();
 
+  const {
+    magnification,
+    setMagnification,
+    showHeatmap, 
+    setShowHeatmap,
+  } = useTileHeatmapParamsStore();
+
+
   const [sampleID, setSampleId] = useState("");
   const [tileOption, setTileOption] = useState("none");
   const [samePatientQuery, setSamePatientQuery] = useState(samePatient === null ? "NA" : samePatient ? "same" : "other");
   const [sameWsiQuery, setSameWsiQuery] = useState(sameWSI === null ? "NA" : sameWSI ? "same" : "other");
   const [tagFilter, setTagFilterState] = useState("");
-  const [queryOptionsVisible, setQueryOptionsVisible] = useState(false);
+  const [tileSimilaritySearchVisible, setTileSimilaritySearchVisible] = useState(false);
+  const [tileSimilarityHeatmapVisible, setTileSimilarityHeatmapVisible] = useState(false);
 
   return (
     <div className="control-panel" style={styles.panel}>
@@ -66,12 +79,12 @@ const ControlPanel: React.FC<ControlPanelProps> = ({ onQueryRun }) => {
       />
       <br /><br />
 
-      <button onClick={() => setQueryOptionsVisible(!queryOptionsVisible)} style={styles.fullWidthButton}>
-        Tile Similarity Search {queryOptionsVisible ? "▼" : "▶"}
+      <button onClick={() => setTileSimilaritySearchVisible(!tileSimilaritySearchVisible)} style={styles.fullWidthButton}>
+        Tile Similarity Search {tileSimilaritySearchVisible ? "▼" : "▶"}
       </button>
       <br /><br />
 
-      {queryOptionsVisible && (
+      {tileSimilaritySearchVisible && (
         <div>
           <label>
             Max Hits:
@@ -95,7 +108,7 @@ const ControlPanel: React.FC<ControlPanelProps> = ({ onQueryRun }) => {
             />
           </label>
           <br /><br />
-
+          
           <Dropdown
             label="Patient Filter:"
             value={samePatientQuery}
@@ -119,7 +132,7 @@ const ControlPanel: React.FC<ControlPanelProps> = ({ onQueryRun }) => {
           <br /><br />
 
           <Dropdown
-            label="Magnifications:"
+            label="Magnification:"
             value={magnificationList ? magnificationList.join(", ") : "None"}
             options={["NA", ...Object.values(TileMagnification)]}
             onChange={(value) =>
@@ -151,8 +164,37 @@ const ControlPanel: React.FC<ControlPanelProps> = ({ onQueryRun }) => {
             />
           </label>
           <br /><br />
-          <button onClick={onQueryRun}>SEARCH</button>
+          <button disabled={selectedTile==null} onClick={onQueryRun}>SEARCH</button>
+          <br /><br />
         </div>
+      )}
+      <button onClick={() => setTileSimilarityHeatmapVisible(!tileSimilarityHeatmapVisible)} style={styles.fullWidthButton}>
+        Tile Similarity Heatmap {tileSimilarityHeatmapVisible ? "▼" : "▶"}
+      </button>
+      <br /><br />
+      {tileSimilarityHeatmapVisible && (
+        <div>
+          <Dropdown
+            label="Tile Magnification:"
+            value={magnification == null ? "NA" : magnification}
+            options={["NA", "5x", "10x", "20x"]}
+            onChange={(value) => {
+              setMagnification(value !== "NA" ? value as TileMagnification : null);
+            }}
+          />
+          <br /><br />
+          <label>
+            Show Heatmap:
+            <input
+              type="checkbox"
+              checked={showHeatmap}
+              onChange={(e) => setShowHeatmap?.(e.target.checked)}
+              disabled={heatmap == null}
+            />
+          </label>
+          <br /><br />
+          <button disabled={selectedTile==null} onClick={onTileHeatmapQuery}>Generate Heatmap</button>
+          </div>
       )}
     </div>
   );

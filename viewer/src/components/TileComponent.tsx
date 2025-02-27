@@ -22,7 +22,7 @@ const TileComponent: React.FC<TileComponentProps> = ({ tile }) => {
     const fetchTileImage = async () => {
       try {
         const response = await fetch(
-          `http://localhost:8080/tile_image/?wsi_path=${tile.wsi_path}&x=${tile.x}&y=${tile.y}&size=${tile.size}`
+          `http://localhost:8000/tile_image/?wsi_path=${tile.wsi_path}&x=${tile.x}&y=${tile.y}&size=${tile.size}`
         );
         if (!response.ok) {
           throw new Error("Failed to load tile image");

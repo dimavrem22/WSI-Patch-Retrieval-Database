@@ -16,7 +16,7 @@ from src.data_models import STAINS, MAGNIFICATIONS, TilePayload, DATASETS
 
 
 # DATABASE PARAMS
-QDRANT_ADDRESS = "http://localhost:8080"
+QDRANT_ADDRESS = "http://localhost:8000"
 COLLECTION_NAME = "demo_lung_cancer"
 DATASET = DATASETS.DFCI
 MAGNIFICATION = MAGNIFICATIONS.X20
@@ -45,7 +45,7 @@ FEATURES_DIR = "/n/scratch/users/d/dmv626/data/DFCI-Lung-No-Pen/VIRCHOW2-Tile-Fe
 def main():
 
     # Start an in-memory Qdrant instance
-    client = QdrantClient(location="http://localhost:8080")
+    client = QdrantClient(location="http://localhost:8000")
 
     # Create Collection
     # client.create_collection(

@@ -5,6 +5,7 @@ import ControlPanel from "./components/ControlPanel";
 import QueryResults from "./components/QueryResults";
 import { useGlobalStore } from "./store/useGlobalStore";
 import { useQueryStore } from "./store/useTileSearchStore";
+import { useTileHeatmapParamsStore } from "./store/useTileHeatmapStore";
 
 const App = () => {
   const {
@@ -14,6 +15,7 @@ const App = () => {
     queryTile,
     queryResults,
     setQueryResults,
+    setHeatmap,
   } = useGlobalStore();
 
   const {
@@ -25,6 +27,10 @@ const App = () => {
     sameWSI,
     tagFilter,
   } = useQueryStore();
+
+  const {
+    setShowHeatmap
+  } = useTileHeatmapParamsStore();
 
 
   const querySimilarTiles = async () => {
@@ -56,7 +62,7 @@ const App = () => {
 
         console.log("Final query params:", params.toString());
 
-        const response = await fetch(`http://localhost:8080/query_similar_tiles/?${params.toString()}`);
+        const response = await fetch(`http://localhost:8000/query_similar_tiles/?${params.toString()}`);
         if (!response.ok) throw new Error("Failed to fetch similar tiles");
 
         const data = await response.json();
@@ -67,16 +73,45 @@ const App = () => {
     }
 };
 
+
+const querySimilarTilesHeatmap = async () => {
+  if (!selectedTile) return;
+
+  try {
+    setShowHeatmap(false);
+    setHeatmap(null);
+    console.log("Running heatmap for tile:", selectedTile.uuid);
+
+    const params = new URLSearchParams();
+    params.append("tile_uuid", selectedTile.uuid);
+    console.log("Final query params:", params.toString());
+
+    const response = await fetch(`http://localhost:8000/similar_tiles_heatmap/?${params.toString()}`);
+          if (!response.ok) throw new Error("Failed to fetch heatmap tiles");
+
+          const data = await response.json();
+          setHeatmap(data);
+          setShowHeatmap(true);
+    } catch (error) {
+        console.error("Error querying similar tiles:", error);
+        setHeatmap(null);
+        setShowHeatmap(false);
+    }
+};
+
   useEffect(() => {
     if (!currentSlideID) return;
-    fetch(`http://localhost:8080/load_wsi/?sample_id=${currentSlideID}`).then((res) => res.json());
+    fetch(`http://localhost:8000/load_wsi/?sample_id=${currentSlideID}`).then((res) => res.json());
   }, [currentSlideID]);
 
   return (
     <div className="h-screen w-screen flex">
       <PanelGroup direction="horizontal" className="flex-1 h-full">
         <Panel defaultSize={20} minSize={20} className="h-full">
-          <ControlPanel onQueryRun={querySimilarTiles}/>
+          <ControlPanel 
+          onQueryRun={querySimilarTiles}
+          onTileHeatmapQuery={querySimilarTilesHeatmap}
+          />
         </Panel>
         <PanelResizeHandle className="resize-handle" />
         <Panel minSize={30} className="h-full flex-1">

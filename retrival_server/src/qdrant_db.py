@@ -1,16 +1,11 @@
 import sys
 from pathlib import Path
 from typing import List, Tuple
-from pydantic import BaseModel
 from qdrant_client import QdrantClient
 from qdrant_client.models import ( 
-    VectorParams,
-    PointStruct,
     Filter,
     FieldCondition,
     MatchValue,
-    CollectionDescription,
-    CollectionsResponse
 )
 
 # Set the root directory dynamically

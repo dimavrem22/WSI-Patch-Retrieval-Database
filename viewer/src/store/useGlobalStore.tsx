@@ -10,6 +10,7 @@ interface GlobalState {
   queryControls: QueryForm;
   viewMagnification: TileMagnification | null;
   center: [number, number] | null;
+  heatmap: Tile[] | null;
 
   setCurrentSlide: (slide: string | null) => void;
   setCurrentSlideMetadata: (slideMetadata: SlideMetadata | null) => void;
@@ -19,6 +20,7 @@ interface GlobalState {
   setQueryControls: (controls: QueryForm) => void;
   setViewMagnification: (magnification: TileMagnification | null) => void;
   setCenter: (center: [number, number] | null) => void;
+  setHeatmap: (heatmap: Tile[] | null) => void;
 }
 
 export const useGlobalStore = create<GlobalState>((set) => ({
@@ -39,6 +41,7 @@ export const useGlobalStore = create<GlobalState>((set) => ({
     magnifications: null,
   },
   center: null,
+  heatmap: null,
 
   setCurrentSlide: (slide) => set({ currentSlideID: slide }),
   setCurrentSlideMetadata: (slideMetadata) => set({ currentSlideMetadata: slideMetadata }),
@@ -48,4 +51,5 @@ export const useGlobalStore = create<GlobalState>((set) => ({
   setQueryControls: (controls) => set({ queryControls: controls }),
   setViewMagnification: (magnification) => set({ viewMagnification: magnification }),
   setCenter: (center) => set({ center: center }),
+  setHeatmap: (heatmap) => set({ heatmap: heatmap }),
 }));

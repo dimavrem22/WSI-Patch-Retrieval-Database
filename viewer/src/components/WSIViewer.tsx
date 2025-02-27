@@ -13,6 +13,7 @@ import { defaults as defaultControls } from "ol/control";
 import { defaults as defaultInteractions } from "ol/interaction";
 import { Tile } from "../types";
 import { useGlobalStore } from "../store/useGlobalStore";
+import { useTileHeatmapParamsStore } from "../store/useTileHeatmapStore";
 import "ol/ol.css";
 
 const WSIViewer = () => {
@@ -23,7 +24,12 @@ const WSIViewer = () => {
     currentSlideMetadata,
     setCurrentSlideMetadata,
     viewMagnification,
+    heatmap,
   } = useGlobalStore();
+
+  const {
+    showHeatmap,
+  } = useTileHeatmapParamsStore();
 
   const tileStyle = new Style({ stroke: new Stroke({ color: "red", width: 2 }) });
   const highlightStyle = new Style({
@@ -38,7 +44,7 @@ const WSIViewer = () => {
   useEffect(() => {
     const fetchMetadata = async () => {
       try {
-        const response = await fetch(`http://localhost:8080/metadata/?sample_id=${currentSlideID}`);
+        const response = await fetch(`http://localhost:8000/metadata/?sample_id=${currentSlideID}`);
         if (!response.ok) throw new Error("Failed to fetch metadata");
         setCurrentSlideMetadata(await response.json());
       } catch (error) {
@@ -60,7 +66,7 @@ const WSIViewer = () => {
 
     const tileLayer = new TileLayer({
       source: new XYZ({
-        url: `http://localhost:8080/tiles/{z}/{x}/{y}/?sample_id=${currentSlideID}`,
+        url: `http://localhost:8000/tiles/{z}/{x}/{y}/?sample_id=${currentSlideID}`,
         crossOrigin: "anonymous",
         tileGrid: slideGrid,
       }),
@@ -151,6 +157,36 @@ const WSIViewer = () => {
     const vectorSource = vectorSourceRef.current;
     vectorSource.clear();
 
+    if (showHeatmap && heatmap) {
+      console.log(heatmap);
+      const features = heatmap.map((tile) => {
+        const x = currentSlideMetadata.extent[0] + tile.x;
+        const y = currentSlideMetadata.extent[3] - tile.y - tile.size;
+      
+        // Convert score (0 to 1) into an HSL hue (240 = blue, 0 = red)
+        const hue = 240 * (1 - (tile.score+1)/2);  // 1 -> 0 (red), 0 -> 240 (blue)
+        const fillColor = `hsla(${hue}, 100%, 50%, 0.5)`;  // 50% lightness, 50% transparency
+      
+        const feature = new Feature({
+          geometry: new Polygon([[
+            [x, y], [x + tile.size, y], 
+            [x + tile.size, y + tile.size], [x, y + tile.size], [x, y]
+          ]]),
+          name: tile.uuid,
+        });
+      
+        feature.setStyle(new Style({
+          fill: new Fill({ color: fillColor }),
+        }));
+      
+        return feature;
+      });
+      
+      console.log(features);
+      vectorSource.addFeatures(features);
+      return;
+    }
+
     const features = currentSlideMetadata.tiles
       .filter((tile) => tile.magnification === viewMagnification)
       .map((tile) => {
@@ -163,10 +199,11 @@ const WSIViewer = () => {
           style: tileStyle,
         });
       });
+      console.log(features);
 
     vectorSource.addFeatures(features);
     highlightTile(selectedTile);
-  }, [viewMagnification, currentSlideMetadata, selectedTile]);
+  }, [viewMagnification, currentSlideMetadata, selectedTile, showHeatmap]);
 
   const highlightTile = (tile: Tile | null) => {
     vectorSourceRef.current.forEachFeature((feature) => {

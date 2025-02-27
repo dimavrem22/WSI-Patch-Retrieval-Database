@@ -14,16 +14,11 @@ from src.qdrant_db import TileVectorDB
 from src.data_models import STAINS, MAGNIFICATIONS, TilePayload
  
 
-
-# Setup tile vector database
-try:
-    db = TileVectorDB("http://localhost:8080", "demo_lung_cancer")
-    # db = TileVectorDB("http://localhost:8080", "demo_collection_big")
-except Exception as e:
-    print(e)
-    pass
+db = TileVectorDB("http://localhost:8080", "demo_lung_cancer")
+SAMPLE_ID_TO_WSI_PATH = "../TEST/DFCI_sample_ID_to_WSI.json"
 
 # db = TileVectorDB("http://localhost:8080", "demo_collection_big")
+# SAMPLE_ID_TO_WSI_PATH = "/home/dmv626/WSI-Patch-Retrieval-Database/TEST/SAMPLE_ID_TO_WSI_BIG.json"
 
 app = FastAPI()
 
@@ -35,9 +30,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-SAMPLE_ID_TO_WSI_PATH = "../TEST/DFCI_sample_ID_to_WSI.json"
-# SAMPLE_ID_TO_WSI_PATH = "/home/dmv626/WSI-Patch-Retrieval-Database/TEST/SAMPLE_ID_TO_WSI_BIG.json"
 
 with open(SAMPLE_ID_TO_WSI_PATH, "r") as f:
     SAMPLE_ID_TO_WSI = json.load(f)
@@ -171,6 +163,33 @@ def query_similar_tiles(
         stain_list=stain_list,
         tag_filter=tag_filter,
     )
+
+@app.get("/similar_tiles_heatmap/")
+def query_similar_tiles(
+    tile_uuid: str,
+    magnification: MAGNIFICATIONS | None = None,
+) -> List[TilePayload]:
+    
+    tile_payload, _ = db.get_tile(tile_uuid=tile_uuid)
+    # wsi_tiles = db.get_wsi_tiles(wsi_path=tile_payload.wsi_path)
+
+    if not magnification:
+        magnification = tile_payload.magnification
+
+    print(f"Running tile similarity heatmap: {tile_uuid}")
+
+    result = db.run_query(
+        tile_uuid=tile_uuid,
+        max_hits=1_000_000,
+        min_similarity=-2,
+        same_wsi=True,
+        magnification_list=[magnification],
+    )
+    if magnification == tile_payload.magnification:
+        tile_payload.score = 1.0
+        result.append(tile_payload)
+
+    return result
 
 
 def resize_and_fill(

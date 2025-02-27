@@ -34,7 +34,7 @@ npm install
 ```sh
 cd retrival_server
 conda activate wsi-server
-python -m uvicorn simple:app --host 0.0.0.0 --port 8080 --reload
+python -m uvicorn simple:app --host 0.0.0.0 --port 8000 --reload
 ```
 
 ### Start the Frontend Viewer
@@ -44,7 +44,7 @@ npm run dev
 ```
 
 ## Usage
-- The backend server runs on `http://0.0.0.0:8080/`
+- The backend server runs on `http://0.0.0.0:8000/`
 - The frontend viewer runs on `http://localhost:5173/`
 
 
