@@ -87,26 +87,15 @@ const WSIViewer = () => {
       zoom = currentSlideMetadata.maxZoom - 2;
     }
 
-    let newExtent = currentSlideMetadata.extent;
 
-    if (currentSlideMetadata.extent[3] > currentSlideMetadata.extent[2]){
-      newExtent = [
-        0 - (currentSlideMetadata.extent[3]-currentSlideMetadata.extent[2]) /2,
-        0, 
-        currentSlideMetadata.extent[2] + (currentSlideMetadata.extent[3]-currentSlideMetadata.extent[2]) /2,
-        currentSlideMetadata.extent[3],
-      ];
-    } else {
-      newExtent = [
-        0,
-        0 - (currentSlideMetadata.extent[2]-currentSlideMetadata.extent[3]) /2,
-        currentSlideMetadata.extent[2],
-        currentSlideMetadata.extent[3] + (currentSlideMetadata.extent[2]-currentSlideMetadata.extent[3]) /2,
-      ];
-    }
-
-    console.log(newExtent);
-
+    const maxDim = Math.max(currentSlideMetadata.extent[3], currentSlideMetadata.extent[2]);
+    const extent = [
+      center[0] - 1 * maxDim,
+      center[1] - 1 * maxDim,
+      center[0] + 1 * maxDim,
+      center[1] + 1 * maxDim,
+    ];
+    
     const view = new View({
       projection: "EPSG:3857",
       center: center,
@@ -114,7 +103,7 @@ const WSIViewer = () => {
       minZoom: 0,
       maxZoom: currentSlideMetadata.maxZoom + 2,
       constrainResolution: false,
-      extent: newExtent,
+      extent: extent,
     });
     
     const mapInstance = new Map({
@@ -221,7 +210,7 @@ const WSIViewer = () => {
     }
   };
 
-  if (!currentSlideMetadata) return <div>Loading metadata...</div>;
+  if (!currentSlideMetadata) return <div>Loading metadata...</div>
 
   return <div className="map-container"><div ref={mapRef} className="wsi-viewer" /></div>;
 };
