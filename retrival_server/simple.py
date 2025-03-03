@@ -7,9 +7,10 @@ import io
 from PIL import Image
 from openslide.deepzoom import DeepZoomGenerator
 import numpy as np
-from typing import Dict, Tuple
+from typing import Dict, Tuple, List
 from starlette.responses import StreamingResponse
-
+import getpass
+from fastapi import FastAPI, HTTPException
  
 
 app = FastAPI()
@@ -29,6 +30,29 @@ def get_active_slide(sample_id: str) -> Tuple[OpenSlide, DeepZoomGenerator]:
     slide = OpenSlide(sample_id)
     deepzoom = DeepZoomGenerator(slide, tile_size=256, overlap=0, limit_bounds=False)
     return slide, deepzoom
+
+
+@app.get("/file_browse/")
+def file_browse(dir_path: str) -> Dict[str, List[str]]:
+    if not dir_path.startswith("/"):
+        user_name = getpass.getuser()
+        dir_path = f"/home/{user_name}/{dir_path}"
+    
+    if not os.path.isdir(dir_path):
+        raise HTTPException(status_code=400, detail=f"Not a valid directory path: {dir_path}")
+    
+    dirs = []
+    files = []
+    
+    for entry in os.listdir(dir_path):
+        full_path = os.path.join(dir_path, entry)
+        if os.path.isdir(full_path):
+            dirs.append(entry)
+        else:
+            files.append(entry)
+    
+    return {"directories": dirs, "files": files}
+
 
 
 @app.get("/load_wsi/")
