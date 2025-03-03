@@ -3,6 +3,7 @@ import { toTileMagnification, TileMagnification, Stains } from "../types";
 import { useGlobalStore } from "../store/useGlobalStore";
 import { useQueryStore } from "../store/useTileSearchStore";
 import { useTileHeatmapParamsStore } from "../store/useTileHeatmapStore";
+import FileBrowser from "./FileBrowser";
 
 interface ControlPanelProps {
   onQueryRun: () => void;
@@ -49,7 +50,8 @@ const ControlPanel: React.FC<ControlPanelProps> = ({ onQueryRun, onTileHeatmapQu
   const [tagFilter, setTagFilterState] = useState("");
   const [tileSimilaritySearchVisible, setTileSimilaritySearchVisible] = useState(false);
   const [tileSimilarityHeatmapVisible, setTileSimilarityHeatmapVisible] = useState(false);
-
+  const [fileBrowserVisible, setFileBrowserVisible] = useState(false);
+ 
   return (
     <div className="control-panel" style={styles.panel}>
       <label>
@@ -67,6 +69,7 @@ const ControlPanel: React.FC<ControlPanelProps> = ({ onQueryRun, onTileHeatmapQu
       </label>
       <button onClick={() => setCurrentSlide(sampleID)}>🔍</button>
       <br /><br />
+  
 
       <Dropdown
         label="Tile Magnification:"
@@ -78,6 +81,18 @@ const ControlPanel: React.FC<ControlPanelProps> = ({ onQueryRun, onTileHeatmapQu
         }}
       />
       <br /><br />
+
+      <button onClick={() => setFileBrowserVisible(!fileBrowserVisible)} style={styles.fullWidthButton}>
+        File Browser {fileBrowserVisible ? "▼" : "▶"}
+      </button>
+      <br /><br />
+
+      {fileBrowserVisible && (
+        <div>
+          <FileBrowser/>
+          <br /><br />
+        </div>
+      )}
 
       <button onClick={() => setTileSimilaritySearchVisible(!tileSimilaritySearchVisible)} style={styles.fullWidthButton}>
         Tile Similarity Search {tileSimilaritySearchVisible ? "▼" : "▶"}

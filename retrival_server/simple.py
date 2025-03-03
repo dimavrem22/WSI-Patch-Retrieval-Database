@@ -32,6 +32,11 @@ def get_active_slide(sample_id: str) -> Tuple[OpenSlide, DeepZoomGenerator]:
     return slide, deepzoom
 
 
+@app.get("/username/")
+def username() -> str:
+    return getpass.getuser()
+
+
 @app.get("/file_browse/")
 def file_browse(dir_path: str) -> Dict[str, List[str]]:
     if not dir_path.startswith("/"):
@@ -41,18 +46,22 @@ def file_browse(dir_path: str) -> Dict[str, List[str]]:
     if not os.path.isdir(dir_path):
         raise HTTPException(status_code=400, detail=f"Not a valid directory path: {dir_path}")
     
-    dirs = []
-    files = []
-    
-    for entry in os.listdir(dir_path):
-        full_path = os.path.join(dir_path, entry)
-        if os.path.isdir(full_path):
-            dirs.append(entry)
-        else:
-            files.append(entry)
-    
-    return {"directories": dirs, "files": files}
+    try:
 
+        dirs = []
+        files = []
+        
+        for entry in os.listdir(dir_path):
+            full_path = os.path.join(dir_path, entry)
+            if os.path.isdir(full_path):
+                dirs.append(entry)
+            else:
+                files.append(entry)
+        
+        return {"directories": dirs, "files": files}
+
+    except PermissionError:
+        raise HTTPException(status_code=403, detail=f"Permission Denied: {dir_path}")
 
 
 @app.get("/load_wsi/")
