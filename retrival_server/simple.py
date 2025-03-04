@@ -61,6 +61,9 @@ def file_browse(dir_path: str) -> Dict[str, List[str]]:
         # Sort directories and files alphabetically
         dirs.sort()
         files.sort()
+
+        if dir_path != '/':
+            dirs.insert(0, "..")
         
         return {"directories": dirs, "files": files}
 
