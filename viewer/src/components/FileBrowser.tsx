@@ -56,6 +56,11 @@ const FileBrowser: React.FC = () => {
   };
 
   const handleDirectoryClick = (dir: string) => {
+
+    if (dir === "..") {
+      handleGoBack();
+      return;
+    }
     const fullPath = currentPath.split('/').slice(0, -1).join('/')
     const newPath = `${fullPath}/${dir}/`;
     setCurrentPath(newPath);
