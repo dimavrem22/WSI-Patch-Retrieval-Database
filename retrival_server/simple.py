@@ -57,6 +57,10 @@ def file_browse(dir_path: str) -> Dict[str, List[str]]:
                 dirs.append(entry)
             else:
                 files.append(entry)
+
+        # Sort directories and files alphabetically
+        dirs.sort()
+        files.sort()
         
         return {"directories": dirs, "files": files}
 

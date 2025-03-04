@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { toTileMagnification, TileMagnification, Stains } from "../types";
 import { useGlobalStore } from "../store/useGlobalStore";
 import { useQueryStore } from "../store/useTileSearchStore";
@@ -16,6 +16,7 @@ const ControlPanel: React.FC<ControlPanelProps> = ({ onQueryRun, onTileHeatmapQu
     setViewMagnification,
     setCurrentSlide,
     setSelectedTile,
+    currentSlideID,
     heatmap,
   } = useGlobalStore();
 
@@ -51,6 +52,12 @@ const ControlPanel: React.FC<ControlPanelProps> = ({ onQueryRun, onTileHeatmapQu
   const [tileSimilaritySearchVisible, setTileSimilaritySearchVisible] = useState(false);
   const [tileSimilarityHeatmapVisible, setTileSimilarityHeatmapVisible] = useState(false);
   const [fileBrowserVisible, setFileBrowserVisible] = useState(false);
+
+  useEffect(() => {
+    if (currentSlideID !== sampleID && currentSlideID) {
+      setSampleId(currentSlideID);
+    }
+  }, [currentSlideID]);
  
   return (
     <div className="control-panel" style={styles.panel}>
