@@ -27,6 +27,7 @@ app.add_middleware(
 
 @lru_cache(maxsize=1)
 def get_active_slide(sample_id: str) -> Tuple[OpenSlide, DeepZoomGenerator]:
+    print("Attempting to open the following sample: ", sample_id)
     slide = OpenSlide(sample_id)
     deepzoom = DeepZoomGenerator(slide, tile_size=256, overlap=0, limit_bounds=False)
     return slide, deepzoom

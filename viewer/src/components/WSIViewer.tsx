@@ -46,9 +46,10 @@ const WSIViewer = () => {
   const lastHighlightedFeature = useRef<Feature<Geometry> | null>(null);
 
   useEffect(() => {
+    if (!currentSlideID) return;
     const fetchMetadata = async () => {
       try {
-        const response = await fetch(`${serverURL}/metadata/?sample_id=${currentSlideID}`);
+        const response = await fetch(`${serverURL}/metadata/?sample_id=${encodeURIComponent(currentSlideID)}`);
         if (!response.ok) throw new Error("Failed to fetch metadata");
         setCurrentSlideMetadata(await response.json());
       } catch (error) {
@@ -59,7 +60,7 @@ const WSIViewer = () => {
   }, [currentSlideID]);
 
   useEffect(() => {
-    if (!mapRef.current || !currentSlideMetadata) return;
+    if (!mapRef.current || !currentSlideMetadata || !currentSlideID) return;
 
     const slideGrid = new TileGrid({
       extent: currentSlideMetadata.extent,
@@ -70,7 +71,7 @@ const WSIViewer = () => {
 
     const tileLayer = new TileLayer({
       source: new XYZ({
-        url: `${serverURL}/tiles/{z}/{x}/{y}/?sample_id=${currentSlideID}`,
+        url: `${serverURL}/tiles/{z}/{x}/{y}/?sample_id=${encodeURIComponent(currentSlideID)}`,
         crossOrigin: "anonymous",
         tileGrid: slideGrid,
       }),

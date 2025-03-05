@@ -104,7 +104,8 @@ const querySimilarTilesHeatmap = async () => {
 
   useEffect(() => {
     if (!currentSlideID) return;
-    fetch(`${serverURL}/load_wsi/?sample_id=${currentSlideID}`).then((res) => res.json());
+    fetch(`${serverURL}/load_wsi/?sample_id=${encodeURIComponent(currentSlideID)}`)
+      .then((res) => res.json());
   }, [currentSlideID]);
 
   return (
