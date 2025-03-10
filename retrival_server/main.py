@@ -1,6 +1,6 @@
 import os
 from functools import lru_cache
-from fastapi import FastAPI, Query
+from fastapi import FastAPI, Query, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from openslide import OpenSlide
 import io
@@ -10,6 +10,7 @@ import numpy as np
 from typing import Dict, Tuple, List
 from starlette.responses import StreamingResponse
 import json
+import getpass
 from src.qdrant_db import TileVectorDB
 from src.data_models import STAINS, MAGNIFICATIONS, TilePayload
  
@@ -42,14 +43,55 @@ def get_active_slide(sample_id: str) -> Tuple[OpenSlide, DeepZoomGenerator]:
     deepzoom = DeepZoomGenerator(slide, tile_size=256, overlap=0, limit_bounds=False)
     return slide, deepzoom
 
+@app.get("/username/")
+def username() -> str:
+    return getpass.getuser()
+
+
+@app.get("/file_browse/")
+def file_browse(dir_path: str) -> Dict[str, List[str]]:
+    if not dir_path.startswith("/"):
+        user_name = getpass.getuser()
+        dir_path = f"/home/{user_name}/{dir_path}"
+    
+    if not os.path.isdir(dir_path):
+        raise HTTPException(status_code=400, detail=f"Not a valid directory path: {dir_path}")
+    
+    try:
+
+        dirs = []
+        files = []
+        
+        for entry in os.listdir(dir_path):
+            full_path = os.path.join(dir_path, entry)
+            if os.path.isdir(full_path):
+                dirs.append(entry)
+            else:
+                files.append(entry)
+
+        # Sort directories and files alphabetically
+        dirs.sort()
+        files.sort()
+
+        if dir_path != '/':
+            dirs.insert(0, "..")
+        
+        return {"directories": dirs, "files": files}
+
+    except PermissionError:
+        raise HTTPException(status_code=403, detail=f"Permission Denied: {dir_path}")
+
 
 @app.get("/load_wsi/")
 def load_wsi(sample_id: str) -> bool:
+
     if os.path.exists(sample_id):
         SAMPLE_ID_TO_WSI[sample_id] = sample_id
         WSI_TO_SAMPLE_ID[sample_id] = sample_id
+
     if sample_id not in SAMPLE_ID_TO_WSI:
         return False
+        
     get_active_slide(sample_id)
     return True
     
@@ -171,7 +213,6 @@ def query_similar_tiles(
 ) -> List[TilePayload]:
     
     tile_payload, _ = db.get_tile(tile_uuid=tile_uuid)
-    # wsi_tiles = db.get_wsi_tiles(wsi_path=tile_payload.wsi_path)
 
     if not magnification:
         magnification = tile_payload.magnification
