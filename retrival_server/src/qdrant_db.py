@@ -12,8 +12,8 @@ from qdrant_client.models import (
 ROOT_DIR = Path(__file__).resolve().parent.parent  # Adjust as needed
 sys.path.insert(0, str(ROOT_DIR))
 
-# Now import TilePayload
 from src.data_models import TilePayload, STAINS, MAGNIFICATIONS
+
 
 class TileVectorDB:
     def __init__(self, qdrant_address: str, collection_name: str) -> None:

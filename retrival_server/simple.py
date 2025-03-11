@@ -11,7 +11,11 @@ from typing import Dict, Tuple, List
 from starlette.responses import StreamingResponse
 import getpass
 from fastapi import FastAPI, HTTPException
- 
+from dotenv import load_dotenv
+load_dotenv()
+
+APPLICATION_DATA_LOCATION = os.getenv("APPLICATION_DATA_LOCATION")
+print("Using the following application path: ", APPLICATION_DATA_LOCATION)
 
 app = FastAPI()
 
@@ -33,9 +37,10 @@ def get_active_slide(sample_id: str) -> Tuple[OpenSlide, DeepZoomGenerator]:
     return slide, deepzoom
 
 
-@app.get("/username/")
-def username() -> str:
-    return getpass.getuser()
+@app.get("/home_directory/")
+def home_directory() -> str:
+    """Returns the path of the user's home directory."""
+    return os.path.expanduser("~") + "/"
 
 
 @app.get("/file_browse/")

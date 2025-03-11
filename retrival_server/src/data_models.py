@@ -41,3 +41,9 @@ class TilePayload(BaseModel):
     size: int
     score: float | None = None
     tags: List[str] = []
+
+
+class WSI_ENTRY(BaseModel):
+    wsi_path: str
+    note: str | None = None
+    labels: List[str] = []

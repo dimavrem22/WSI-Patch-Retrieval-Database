@@ -41,9 +41,6 @@ export type SlideMetadata = {
   level_dimentions: [number, number][];
   extent: [number, number, number, number];
   level_tiles: number[][];
-  minZoom: number;
-  startZoom: number;
-  maxZoom: number;
   mpp_x: number;
   mpp_y: number;
   resolutions: number[];

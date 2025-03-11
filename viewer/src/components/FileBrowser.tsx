@@ -5,6 +5,7 @@ import { useGlobalStore } from "../store/useGlobalStore";
 const FileBrowser: React.FC = () => {
 
   const serverURL = import.meta.env.VITE_SERVER_URL
+  const defaultPath = import.meta.env.VITE_DEFAULT_FILE_BROWSER_PATH
 
   const {
     setCurrentSlide,
@@ -22,17 +23,23 @@ const FileBrowser: React.FC = () => {
   useEffect(() => {
     const initPath = async () => {
       try {
-        const response = await fetch(`${serverURL}/username/`);
+        const response = await fetch(`${serverURL}/home_directory/`);
         const data = await response.text();
-        const cleanedData = data.replace(/['"`]/g, "");
-        const userPath = `/home/${cleanedData}/`;
-        setCurrentPath(userPath);
-        fetchDirectory(userPath);
+        const homeDirPath = data.replace(/['"`]/g, "");
+        setCurrentPath(homeDirPath);
+        fetchDirectory(homeDirPath);
       } catch (error) {
         console.error("Error fetching username", error);
       }
     };
-    initPath();
+    
+
+    if (defaultPath){
+      setCurrentPath(defaultPath);
+      fetchDirectory(defaultPath);
+    } else {
+      initPath();
+    }
   }, []);
 
   const fetchDirectory = async (path: string) => {

@@ -12,15 +12,33 @@ from starlette.responses import StreamingResponse
 import json
 import getpass
 from src.qdrant_db import TileVectorDB
+from src.wsi_db import WSI_DB
 from src.data_models import STAINS, MAGNIFICATIONS, TilePayload
- 
+from dotenv import load_dotenv
+load_dotenv()
 
-db = TileVectorDB("http://localhost:8080", "demo_lung_cancer")
+
+# Getting the application data path
+APPLICATION_DATA_LOCATION = os.getenv("APPLICATION_DATA_LOCATION")
+
+if not APPLICATION_DATA_LOCATION: 
+    print("WARNING: No APPLICATION_DATA_LOCATION specified in .env. Using ~/wsi_viewer/ by default.")
+    APPLICATION_DATA_LOCATION = "~/wsi_viewer/"
+else:
+    print(f"Using the following application path: {APPLICATION_DATA_LOCATION}")
+
+
+# Initializing tile vector database
+vector_db = TileVectorDB("http://localhost:8080", "demo_lung_cancer")
 SAMPLE_ID_TO_WSI_PATH = "../TEST/DFCI_sample_ID_to_WSI.json"
 
-# db = TileVectorDB("http://localhost:8080", "demo_collection_big")
+# vector_db = TileVectorDB("http://localhost:8080", "demo_collection_big")
 # SAMPLE_ID_TO_WSI_PATH = "/home/dmv626/WSI-Patch-Retrieval-Database/TEST/SAMPLE_ID_TO_WSI_BIG.json"
 
+# Intializing the WSI pandas DB
+wsi_db = WSI_DB(db_dir_path=APPLICATION_DATA_LOCATION)
+
+# Initializing server
 app = FastAPI()
 
 # Allow frontend to access backend
@@ -36,16 +54,17 @@ with open(SAMPLE_ID_TO_WSI_PATH, "r") as f:
     SAMPLE_ID_TO_WSI = json.load(f)
     WSI_TO_SAMPLE_ID = {v: k for k, v in SAMPLE_ID_TO_WSI.items()}
 
-
 @lru_cache(maxsize=1)
 def get_active_slide(sample_id: str) -> Tuple[OpenSlide, DeepZoomGenerator]:
     slide = OpenSlide(SAMPLE_ID_TO_WSI[sample_id])
     deepzoom = DeepZoomGenerator(slide, tile_size=256, overlap=0, limit_bounds=False)
     return slide, deepzoom
 
-@app.get("/username/")
-def username() -> str:
-    return getpass.getuser()
+
+@app.get("/home_directory/")
+def home_directory() -> str:
+    """Returns the path of the user's home directory."""
+    return os.path.expanduser("~") + "/"
 
 
 @app.get("/file_browse/")
@@ -58,7 +77,6 @@ def file_browse(dir_path: str) -> Dict[str, List[str]]:
         raise HTTPException(status_code=400, detail=f"Not a valid directory path: {dir_path}")
     
     try:
-
         dirs = []
         files = []
         
@@ -120,7 +138,15 @@ def get_metadata(sample_id: str) -> Dict:
     resolutions = [2**i for i in range(deepzoom.level_count)][::-1]
 
     try:
-        tiles = db.get_wsi_tiles(wsi_path=wsi_path)
+        tiles = vector_db.get_wsi_tiles(wsi_path=wsi_path)
+    except:
+        print("UNABLE TO GET TILES FROM QDRANT")
+        tiles = []
+
+    try:
+        wsi_entry = wsi_db.get_wsi(wsi_path=wsi_path)
+        labels = wsi_entry.labels
+        note = wsi_entry.note
     except:
         print("UNABLE TO GET TILES FROM QDRANT")
         tiles = []
@@ -136,7 +162,9 @@ def get_metadata(sample_id: str) -> Dict:
         "mpp_x": float(slide.properties.get("openslide.mpp-x", "0")),
         "mpp_y": float(slide.properties.get("openslide.mpp-y", "0")),
         "resolutions": resolutions,
-        "tiles": tiles
+        "tiles": tiles,
+        "note": note,
+        "labels": labels,
     }
 
 
@@ -195,7 +223,7 @@ def query_similar_tiles(
 
     print(f"Running similarity query for tile ID: {tile_uuid}")
 
-    return db.run_query(
+    return vector_db.run_query(
         tile_uuid=tile_uuid,
         max_hits=max_hits,
         min_similarity=min_score,
@@ -212,14 +240,14 @@ def query_similar_tiles(
     magnification: MAGNIFICATIONS | None = None,
 ) -> List[TilePayload]:
     
-    tile_payload, _ = db.get_tile(tile_uuid=tile_uuid)
+    tile_payload, _ = vector_db.get_tile(tile_uuid=tile_uuid)
 
     if not magnification:
         magnification = tile_payload.magnification
 
     print(f"Running tile similarity heatmap: {tile_uuid}")
 
-    result = db.run_query(
+    result = vector_db.run_query(
         tile_uuid=tile_uuid,
         max_hits=1_000_000,
         min_similarity=-2,

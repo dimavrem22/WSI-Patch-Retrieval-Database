@@ -65,7 +65,7 @@ const WSIViewer = () => {
     const slideGrid = new TileGrid({
       extent: currentSlideMetadata.extent,
       tileSize: [256, 256],
-      minZoom: currentSlideMetadata.minZoom - 2,
+      minZoom: 0,
       resolutions: currentSlideMetadata.resolutions,
     });
 
@@ -83,13 +83,15 @@ const WSIViewer = () => {
       currentSlideMetadata.extent[0] + (currentSlideMetadata.extent[2] - currentSlideMetadata.extent[0]) / 2,
       currentSlideMetadata.extent[1] + (currentSlideMetadata.extent[3] - currentSlideMetadata.extent[1]) / 2,
     ];
-    let zoom = currentSlideMetadata.minZoom;
+    let zoom = 0;
+
+
     if (selectedTile) {
       center = [
         selectedTile.x + selectedTile.size / 2,
         currentSlideMetadata.extent[3] - selectedTile.y - selectedTile.size / 2,
       ];
-      zoom = currentSlideMetadata.maxZoom - 2;
+      zoom = currentSlideMetadata.level_count - 2;
     }
 
 
@@ -106,7 +108,7 @@ const WSIViewer = () => {
       center: center,
       zoom: zoom,
       minZoom: 0,
-      maxZoom: currentSlideMetadata.maxZoom + 2,
+      maxZoom: currentSlideMetadata.level_count + 1,
       constrainResolution: false,
       extent: extent,
     });
@@ -119,11 +121,6 @@ const WSIViewer = () => {
       view: view,
     });
     
-    // Fit the view to ensure the entire WSI is visible at startup
-    view.fit(currentSlideMetadata.extent, {
-      size: mapInstance.getSize(),
-      padding: [50, 50, 50, 50], // Optional padding
-    });
 
     mapInstance.on("singleclick", (event) => {
       const clickedCoords = event.coordinate;
@@ -152,7 +149,6 @@ const WSIViewer = () => {
     vectorSource.clear();
 
     if (showHeatmap && heatmap) {
-      console.log(heatmap);
       const features = heatmap.map((tile) => {
         const x = currentSlideMetadata.extent[0] + tile.x;
         const y = currentSlideMetadata.extent[3] - tile.y - tile.size;
@@ -175,8 +171,6 @@ const WSIViewer = () => {
       
         return feature;
       });
-      
-      console.log(features);
       vectorSource.addFeatures(features);
       return;
     }
