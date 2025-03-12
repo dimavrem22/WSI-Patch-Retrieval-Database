@@ -37,6 +37,7 @@ export type Tile = {
 };
 
 export type SlideMetadata = {
+  location: string;
   level_count: number;
   level_dimentions: [number, number][];
   extent: [number, number, number, number];
@@ -45,6 +46,8 @@ export type SlideMetadata = {
   mpp_y: number;
   resolutions: number[];
   tiles: Tile[];
+  note: string | null;
+  labels: string[];
 };
 
 export type QueryForm = {

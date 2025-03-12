@@ -1,11 +1,14 @@
 import { useEffect } from "react";
+import { Toaster } from "react-hot-toast";
 import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
 import WSIViewer from "./components/WSIViewer";
 import ControlPanel from "./components/ControlPanel";
 import QueryResults from "./components/QueryResults";
+import MetadataComponent from "./components/MetadataComponent";
 import { useGlobalStore } from "./store/useGlobalStore";
 import { useQueryStore } from "./store/useTileSearchStore";
 import { useTileHeatmapParamsStore } from "./store/useTileHeatmapStore";
+
 
 const App = () => {
 
@@ -19,6 +22,7 @@ const App = () => {
     queryResults,
     setQueryResults,
     setHeatmap,
+    currentSlideMetadata,
   } = useGlobalStore();
 
   const {
@@ -110,6 +114,7 @@ const querySimilarTilesHeatmap = async () => {
 
   return (
     <div className="h-screen w-screen flex">
+      <Toaster />
       <PanelGroup direction="horizontal" className="flex-1 h-full">
         <Panel defaultSize={20} minSize={20} className="h-full">
           <ControlPanel 
@@ -129,12 +134,18 @@ const querySimilarTilesHeatmap = async () => {
         </Panel>
         <PanelResizeHandle className="resize-handle" />
         <Panel 
-          defaultSize={queryResults !== null ? 30 : 0} 
-          minSize={queryResults !== null ? 25 : 0} 
+          defaultSize={currentSlideMetadata !== null ? 30 : 0} 
+          minSize={currentSlideMetadata !== null ? 25 : 0} 
           className="h-full" 
-          hidden={queryResults == null }
+          hidden={currentSlideMetadata == null }
         >
-          {queryResults !== null && queryTile && <QueryResults queryTile={queryTile} resultTiles={queryResults} />}
+          {currentSlideMetadata !== null && 
+          <MetadataComponent
+              metadata={currentSlideMetadata}
+              onMetadataChange={()=> {}}
+          />}
+          {/* {queryResults !== null && queryTile && <QueryResults queryTile={queryTile} resultTiles={queryResults} />} */}
+
         </Panel>
       </PanelGroup>
     </div>

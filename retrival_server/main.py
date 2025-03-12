@@ -13,7 +13,7 @@ import json
 import getpass
 from src.qdrant_db import TileVectorDB
 from src.wsi_db import WSI_DB
-from src.data_models import STAINS, MAGNIFICATIONS, TilePayload
+from src.data_models import STAINS, MAGNIFICATIONS, WSI_ENTRY, TilePayload
 from dotenv import load_dotenv
 load_dotenv()
 
@@ -23,7 +23,7 @@ APPLICATION_DATA_LOCATION = os.getenv("APPLICATION_DATA_LOCATION")
 
 if not APPLICATION_DATA_LOCATION: 
     print("WARNING: No APPLICATION_DATA_LOCATION specified in .env. Using ~/wsi_viewer/ by default.")
-    APPLICATION_DATA_LOCATION = "~/wsi_viewer/"
+    APPLICATION_DATA_LOCATION = "~/.wsi_viewer/"
 else:
     print(f"Using the following application path: {APPLICATION_DATA_LOCATION}")
 
@@ -131,10 +131,7 @@ def get_metadata(sample_id: str) -> Dict:
     extent = deepzoom.level_dimensions[-1]
     level_tiles = np.array(deepzoom.level_tiles)
 
-    # first layer with more than 1 tile in each x and y axes
-    min_layer = np.where((level_tiles[:, 0] > 1) & (level_tiles[:, 1] > 1))[0][0]
-    min_zoom = int(deepzoom.level_count - min_layer)
-
+    # get the resolutions at each level
     resolutions = [2**i for i in range(deepzoom.level_count)][::-1]
 
     try:
@@ -145,20 +142,19 @@ def get_metadata(sample_id: str) -> Dict:
 
     try:
         wsi_entry = wsi_db.get_wsi(wsi_path=wsi_path)
+        print(wsi_entry)
         labels = wsi_entry.labels
         note = wsi_entry.note
-    except:
-        print("UNABLE TO GET TILES FROM QDRANT")
-        tiles = []
+    except Exception as e:
+        print(f"UNABLE TO GET WSI DATA FROM WSI DB. Error: {e}")
+
 
     return {
+        "location": wsi_path,
         "level_count": deepzoom.level_count,
         "level_dimentions": deepzoom.level_dimensions,
         "extent": [0, 0, extent[0], extent[1]],
         "level_tiles": level_tiles.tolist(),
-        "startZoom": int(np.min([min_zoom + 3, slide.level_count - 3])),
-        "minZoom": min_zoom,
-        "maxZoom": deepzoom.level_count,
         "mpp_x": float(slide.properties.get("openslide.mpp-x", "0")),
         "mpp_y": float(slide.properties.get("openslide.mpp-y", "0")),
         "resolutions": resolutions,
@@ -259,6 +255,17 @@ def query_similar_tiles(
         result.append(tile_payload)
 
     return result
+
+
+@app.put("/wsi_data_update/")
+def wsi_data_update(wsi_entry: WSI_ENTRY):
+    try:
+        wsi_db.update_wsi(wsi_entry=wsi_entry)
+        return {"success": True}  # Return a JSON response
+    except Exception as e:
+        print(f"Failed to update entry: {wsi_entry}. Exception: {e}")
+        raise HTTPException(status_code=500, detail="Failed to update entry")
+
 
 
 def resize_and_fill(

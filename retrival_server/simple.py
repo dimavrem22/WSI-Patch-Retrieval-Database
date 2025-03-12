@@ -1,6 +1,6 @@
 import os
 from functools import lru_cache
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from openslide import OpenSlide
 import io
@@ -9,30 +9,54 @@ from openslide.deepzoom import DeepZoomGenerator
 import numpy as np
 from typing import Dict, Tuple, List
 from starlette.responses import StreamingResponse
+import json
 import getpass
-from fastapi import FastAPI, HTTPException
+from src.qdrant_db import TileVectorDB
+from src.wsi_db import WSI_DB
+from src.data_models import WSI_ENTRY
 from dotenv import load_dotenv
 load_dotenv()
 
-APPLICATION_DATA_LOCATION = os.getenv("APPLICATION_DATA_LOCATION")
-print("Using the following application path: ", APPLICATION_DATA_LOCATION)
 
+# Getting the application data path
+APPLICATION_DATA_LOCATION = os.getenv("APPLICATION_DATA_LOCATION")
+
+if not APPLICATION_DATA_LOCATION: 
+    print("WARNING: No APPLICATION_DATA_LOCATION specified in .env. Using ~/wsi_viewer/ by default.")
+    APPLICATION_DATA_LOCATION = "~/.wsi_viewer/"
+else:
+    print(f"Using the following application path: {APPLICATION_DATA_LOCATION}")
+
+
+# Initializing tile vector database
+vector_db = TileVectorDB("http://localhost:8080", "demo_lung_cancer")
+SAMPLE_ID_TO_WSI_PATH = "../TEST/DFCI_sample_ID_to_WSI.json"
+
+# vector_db = TileVectorDB("http://localhost:8080", "demo_collection_big")
+# SAMPLE_ID_TO_WSI_PATH = "/home/dmv626/WSI-Patch-Retrieval-Database/TEST/SAMPLE_ID_TO_WSI_BIG.json"
+
+# Intializing the WSI pandas DB
+wsi_db = WSI_DB(db_dir_path=APPLICATION_DATA_LOCATION)
+
+# Initializing server
 app = FastAPI()
 
 # Allow frontend to access backend
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"], 
+    allow_origins=["http://localhost:5173"], 
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
+with open(SAMPLE_ID_TO_WSI_PATH, "r") as f:
+    SAMPLE_ID_TO_WSI = json.load(f)
+    WSI_TO_SAMPLE_ID = {v: k for k, v in SAMPLE_ID_TO_WSI.items()}
 
 @lru_cache(maxsize=1)
 def get_active_slide(sample_id: str) -> Tuple[OpenSlide, DeepZoomGenerator]:
-    print("Attempting to open the following sample: ", sample_id)
-    slide = OpenSlide(sample_id)
+    slide = OpenSlide(SAMPLE_ID_TO_WSI[sample_id])
     deepzoom = DeepZoomGenerator(slide, tile_size=256, overlap=0, limit_bounds=False)
     return slide, deepzoom
 
@@ -53,7 +77,6 @@ def file_browse(dir_path: str) -> Dict[str, List[str]]:
         raise HTTPException(status_code=400, detail=f"Not a valid directory path: {dir_path}")
     
     try:
-
         dirs = []
         files = []
         
@@ -79,14 +102,27 @@ def file_browse(dir_path: str) -> Dict[str, List[str]]:
 
 @app.get("/load_wsi/")
 def load_wsi(sample_id: str) -> bool:
+
     if os.path.exists(sample_id):
-        get_active_slide(sample_id)
-        return True
-    return False
+        SAMPLE_ID_TO_WSI[sample_id] = sample_id
+        WSI_TO_SAMPLE_ID[sample_id] = sample_id
+
+    if sample_id not in SAMPLE_ID_TO_WSI:
+        return False
+        
+    get_active_slide(sample_id)
+    return True
     
 
 @app.get("/metadata/")
 def get_metadata(sample_id: str) -> Dict:
+
+    if os.path.exists(sample_id):
+        SAMPLE_ID_TO_WSI[sample_id] = sample_id
+        WSI_TO_SAMPLE_ID[sample_id] = sample_id
+
+    # get the wsi path
+    wsi_path = SAMPLE_ID_TO_WSI[sample_id]
 
     # load slide (possibly already in memmory)
     slide, deepzoom = get_active_slide(sample_id=sample_id)
@@ -95,24 +131,36 @@ def get_metadata(sample_id: str) -> Dict:
     extent = deepzoom.level_dimensions[-1]
     level_tiles = np.array(deepzoom.level_tiles)
 
-    # first layer with more than 1 tile in each x and y axes
-    min_layer = np.where((level_tiles[:, 0] > 1) & (level_tiles[:, 1] > 1))[0][0]
-    min_zoom = int(deepzoom.level_count - min_layer)
-
+    # get the resolutions at each level
     resolutions = [2**i for i in range(deepzoom.level_count)][::-1]
 
+    try:
+        tiles = vector_db.get_wsi_tiles(wsi_path=wsi_path)
+    except:
+        print("UNABLE TO GET TILES FROM QDRANT")
+        tiles = []
+
+    try:
+        wsi_entry = wsi_db.get_wsi(wsi_path=wsi_path)
+        print(wsi_entry)
+        labels = wsi_entry.labels
+        note = wsi_entry.note
+    except Exception as e:
+        print(f"UNABLE TO GET WSI DATA FROM WSI DB. Error: {e}")
+
+
     return {
+        "location": wsi_path,
         "level_count": deepzoom.level_count,
         "level_dimentions": deepzoom.level_dimensions,
         "extent": [0, 0, extent[0], extent[1]],
         "level_tiles": level_tiles.tolist(),
-        "startZoom": int(np.min([min_zoom + 3, slide.level_count - 3])),
-        "minZoom": min_zoom,
-        "maxZoom": deepzoom.level_count,
         "mpp_x": float(slide.properties.get("openslide.mpp-x", "0")),
         "mpp_y": float(slide.properties.get("openslide.mpp-y", "0")),
         "resolutions": resolutions,
-        "tiles": []
+        "tiles": tiles,
+        "note": note,
+        "labels": labels,
     }
 
 
@@ -135,6 +183,38 @@ def get_tile(sample_id: str, z: int, x: int, y: int) -> StreamingResponse:
     except ValueError:
         tile = Image.new("RGB", (256, 256), (255, 255, 255))
     return stream_tile(tile)
+
+@app.get("/tile_image/")
+def get_tile_image(wsi_path: str, x: int, y: int, size: int) -> StreamingResponse:
+    slide = OpenSlide(wsi_path)
+
+    # Get the best level that can give us a 256x256 tile efficiently
+    best_level = slide.get_best_level_for_downsample(size / 256)
+    level_downsample = slide.level_downsamples[best_level]
+
+    # Scale x, y, and size to match the selected level
+    adj_x = int(x / level_downsample)
+    adj_y = int(y / level_downsample)
+    adj_size = int(size / level_downsample)
+
+    # Read the adjusted region at the selected level
+    tile = slide.read_region((adj_x, adj_y), best_level, (adj_size, adj_size))
+
+    # Resize tile to 256x256
+    tile = tile.resize((256, 256))
+
+    return stream_tile(tile) 
+
+
+@app.put("/wsi_data_update/")
+def wsi_data_update(wsi_entry: WSI_ENTRY):
+    try:
+        wsi_db.update_wsi(wsi_entry=wsi_entry)
+        return {"success": True}  # Return a JSON response
+    except Exception as e:
+        print(f"Failed to update entry: {wsi_entry}. Exception: {e}")
+        raise HTTPException(status_code=500, detail="Failed to update entry")
+
 
 
 def resize_and_fill(

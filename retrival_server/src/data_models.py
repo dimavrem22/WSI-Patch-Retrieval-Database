@@ -1,6 +1,7 @@
 from enum import Enum
 from pydantic import BaseModel
 from typing import List
+import math
 
 class DATASETS(Enum):
     CMUH = "CMUH"
@@ -47,3 +48,10 @@ class WSI_ENTRY(BaseModel):
     wsi_path: str
     note: str | None = None
     labels: List[str] = []
+
+    def __init__(self, **data):
+        # TODO: REMOVE THE NEED FOR THIS!!!!
+        # Convert 'nan' to None for the note field
+        if "note" in data and isinstance(data["note"], float) and math.isnan(data["note"]):
+            data["note"] = None
+        super().__init__(**data)
