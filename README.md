@@ -22,9 +22,10 @@ cd retrival_server
 touch `.env`
 conda env create -f environment.yaml
 ```
-#### .env File Setup
+#### `./retrival_server/.env` File Setup
 ```txt
-tekjfkdjkfjdkjfdkjf
+OPTIONAL: LOCATION WHERE YOU WANT THE WSI DATABASE TO BE STORED
+APPLICATION_DATA_LOCATION="<DB_PATH>"
 ```
 
 
@@ -36,7 +37,14 @@ echo 'VITE_SERVER_URL="http://localhost:8000"' > .env
 npm install
 ```
 
-#### .env File Setup
+#### `./viewer/.env` File Setup
+```
+# ADDRESS ON WHICH THE BACKEND SERVER IS RUNNING
+VITE_SERVER_URL="http://localhost:8000"
+
+# OPTIONAL: IF YOU WANT TO MANUALLY SET THE DEFAULT FILE BROWSER PATH
+VITE_DEFAULT_FILE_BROWSER_PATH="<DEFAULT_PATH>"
+```
 
 Ensure you specify the correct port in which you intend to run your backend server!
 
