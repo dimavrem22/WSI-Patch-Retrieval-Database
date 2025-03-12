@@ -19,15 +19,21 @@ cd WSI-Patch-Retrieval-Database
 ### 2. Setup the Retrieval Server
 ```sh
 cd retrival_server
+touch `.env`
 conda env create -f environment.yaml
 ```
+#### .env File Setup
+
 
 ### 3. Setup the Frontend Viewer
 ```sh
 cd viewer
+touch `.env`
 echo 'VITE_SERVER_URL="http://localhost:8000"' > .env
 npm install
 ```
+
+#### .env File Setup
 
 Ensure you specify the correct port in which you intend to run your backend server!
 
