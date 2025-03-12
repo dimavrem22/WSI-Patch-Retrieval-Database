@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useState, useEffect } from "react";
 import { Toaster } from "react-hot-toast";
 import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
 import WSIViewer from "./components/WSIViewer";
@@ -9,11 +9,8 @@ import { useGlobalStore } from "./store/useGlobalStore";
 import { useQueryStore } from "./store/useTileSearchStore";
 import { useTileHeatmapParamsStore } from "./store/useTileHeatmapStore";
 
-
 const App = () => {
-
-  const serverURL = import.meta.env.VITE_SERVER_URL
-
+  const serverURL = import.meta.env.VITE_SERVER_URL;
   const {
     currentSlideID,
     selectedTile,
@@ -25,86 +22,79 @@ const App = () => {
     currentSlideMetadata,
   } = useGlobalStore();
 
-  const {
-    maxHits,
-    minSimilarity,
-    magnificationList,
-    stainList,
-    samePatient,
-    sameWSI,
-    tagFilter,
-  } = useQueryStore();
+  const { maxHits, minSimilarity, magnificationList, stainList, samePatient, sameWSI, tagFilter } = useQueryStore();
+  const { setShowHeatmap } = useTileHeatmapParamsStore();
 
-  const {
-    setShowHeatmap
-  } = useTileHeatmapParamsStore();
+  // Dynamically track which tabs should be visible
+  const availableTabs = [];
+  if (currentSlideMetadata) availableTabs.push("metadata");
+  if (queryResults) availableTabs.push("queryResults");
 
+  // Track which tab is active
+  const [activeTab, setActiveTab] = useState(availableTabs[0] || null);
+
+  useEffect(() => {
+    if (availableTabs.length > 0 && !availableTabs.includes(activeTab)) {
+      setActiveTab(availableTabs[0]); // Automatically set the first available tab
+    }
+  }, [availableTabs, activeTab]);
 
   const querySimilarTiles = async () => {
     if (!selectedTile) return;
     try {
-        setQueryTile(selectedTile);
-        setQueryResults([]);
-        console.log("Running query for tile:", selectedTile.uuid);
+      setQueryTile(selectedTile);
+      setQueryResults([]);
+      console.log("Running query for tile:", selectedTile.uuid);
 
-        const params = new URLSearchParams();
-        params.append("tile_uuid", selectedTile.uuid);
-        params.append("max_hits", maxHits.toString());
-        params.append("min_score", minSimilarity.toString());
+      const params = new URLSearchParams();
+      params.append("tile_uuid", selectedTile.uuid);
+      params.append("max_hits", maxHits.toString());
+      params.append("min_score", minSimilarity.toString());
 
-        if (tagFilter) {
-          params.append("tag_filter", tagFilter.toString());
-        }
+      if (tagFilter) params.append("tag_filter", tagFilter.toString());
+      if (samePatient !== null) params.append("same_pt", samePatient.toString());
+      if (sameWSI !== null) params.append("same_wsi", sameWSI.toString());
+      if (magnificationList && magnificationList.length > 0) magnificationList.forEach(m => params.append("magnification_list", m));
+      if (stainList && stainList.length > 0) stainList.forEach(s => params.append("stain_list", s));
 
-        if (samePatient !== null) params.append("same_pt", samePatient.toString());
-        if (sameWSI !== null) params.append("same_wsi", sameWSI.toString());
+      console.log("Final query params:", params.toString());
 
-        if (magnificationList && magnificationList.length > 0) {
-            magnificationList.forEach(m => params.append("magnification_list", m));
-        }
+      const response = await fetch(`${serverURL}/query_similar_tiles/?${params.toString()}`);
+      if (!response.ok) throw new Error("Failed to fetch similar tiles");
 
-        if (stainList && stainList.length > 0) {
-            stainList.forEach(s => params.append("stain_list", s));
-        }
-
-        console.log("Final query params:", params.toString());
-
-        const response = await fetch(`${serverURL}/query_similar_tiles/?${params.toString()}`);
-        if (!response.ok) throw new Error("Failed to fetch similar tiles");
-
-        const data = await response.json();
-        setQueryResults(data);
+      const data = await response.json();
+      setQueryResults(data);
+      setActiveTab("queryResults"); // Automatically switch to Query Results tab
     } catch (error) {
-        console.error("Error querying similar tiles:", error);
-        setQueryResults(null);
+      console.error("Error querying similar tiles:", error);
+      setQueryResults(null);
     }
-};
+  };
 
+  const querySimilarTilesHeatmap = async () => {
+    if (!selectedTile) return;
 
-const querySimilarTilesHeatmap = async () => {
-  if (!selectedTile) return;
+    try {
+      setShowHeatmap(false);
+      setHeatmap(null);
+      console.log("Running heatmap for tile:", selectedTile.uuid);
 
-  try {
-    setShowHeatmap(false);
-    setHeatmap(null);
-    console.log("Running heatmap for tile:", selectedTile.uuid);
+      const params = new URLSearchParams();
+      params.append("tile_uuid", selectedTile.uuid);
+      console.log("Final query params:", params.toString());
 
-    const params = new URLSearchParams();
-    params.append("tile_uuid", selectedTile.uuid);
-    console.log("Final query params:", params.toString());
+      const response = await fetch(`${serverURL}/similar_tiles_heatmap/?${params.toString()}`);
+      if (!response.ok) throw new Error("Failed to fetch heatmap tiles");
 
-    const response = await fetch(`${serverURL}/similar_tiles_heatmap/?${params.toString()}`);
-          if (!response.ok) throw new Error("Failed to fetch heatmap tiles");
-
-          const data = await response.json();
-          setHeatmap(data);
-          setShowHeatmap(true);
+      const data = await response.json();
+      setHeatmap(data);
+      setShowHeatmap(true);
     } catch (error) {
-        console.error("Error querying similar tiles:", error);
-        setHeatmap(null);
-        setShowHeatmap(false);
+      console.error("Error querying similar tiles:", error);
+      setHeatmap(null);
+      setShowHeatmap(false);
     }
-};
+  };
 
   useEffect(() => {
     if (!currentSlideID) return;
@@ -118,8 +108,8 @@ const querySimilarTilesHeatmap = async () => {
       <PanelGroup direction="horizontal" className="flex-1 h-full">
         <Panel defaultSize={20} minSize={20} className="h-full">
           <ControlPanel 
-          onQueryRun={querySimilarTiles}
-          onTileHeatmapQuery={querySimilarTilesHeatmap}
+            onQueryRun={querySimilarTiles}
+            onTileHeatmapQuery={querySimilarTilesHeatmap}
           />
         </Panel>
         <PanelResizeHandle className="resize-handle" />
@@ -133,20 +123,45 @@ const querySimilarTilesHeatmap = async () => {
           )}
         </Panel>
         <PanelResizeHandle className="resize-handle" />
-        <Panel 
-          defaultSize={currentSlideMetadata !== null ? 30 : 0} 
-          minSize={currentSlideMetadata !== null ? 25 : 0} 
-          className="h-full" 
-          hidden={currentSlideMetadata == null }
-        >
-          {currentSlideMetadata !== null && 
-          <MetadataComponent
-              metadata={currentSlideMetadata}
-              onMetadataChange={()=> {}}
-          />}
-          {/* {queryResults !== null && queryTile && <QueryResults queryTile={queryTile} resultTiles={queryResults} />} */}
+        {availableTabs.length > 0 && (
+          <Panel defaultSize={30} minSize={25} className="h-full">
+            {/* Show tabs only if more than one tab exists */}
+            {availableTabs.length > 1 && (
+              <div className="flex border-b">
+                {availableTabs.includes("metadata") && (
+                  <button
+                    className={`px-4 py-2 text-sm font-medium ${
+                      activeTab === "metadata" ? "border-b-2 border-blue-500 text-blue-500" : "text-gray-500"
+                    }`}
+                    onClick={() => setActiveTab("metadata")}
+                  >
+                    Metadata
+                  </button>
+                )}
+                {availableTabs.includes("queryResults") && (
+                  <button
+                    className={`px-4 py-2 text-sm font-medium ${
+                      activeTab === "queryResults" ? "border-b-2 border-blue-500 text-blue-500" : "text-gray-500"
+                    }`}
+                    onClick={() => setActiveTab("queryResults")}
+                  >
+                    Query Results
+                  </button>
+                )}
+              </div>
+            )}
 
-        </Panel>
+            {/* Tab Content */}
+            <div className="p-2 h-full overflow-auto">
+              {activeTab === "metadata" && currentSlideMetadata && (
+                <MetadataComponent metadata={currentSlideMetadata} onMetadataChange={() => {}} />
+              )}
+              {activeTab === "queryResults" && queryTile && queryResults && (
+                <QueryResults queryTile={queryTile} resultTiles={queryResults} />
+              )}
+            </div>
+          </Panel>
+        )}
       </PanelGroup>
     </div>
   );

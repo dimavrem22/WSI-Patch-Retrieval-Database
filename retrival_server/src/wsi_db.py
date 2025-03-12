@@ -3,7 +3,6 @@ import sys
 import logging
 import sqlite3
 from pathlib import Path
-from typing import List, Optional
 
 from src.data_models import WSI_ENTRY
 
