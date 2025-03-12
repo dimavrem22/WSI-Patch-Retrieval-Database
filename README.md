@@ -23,6 +23,9 @@ touch `.env`
 conda env create -f environment.yaml
 ```
 #### .env File Setup
+```txt
+tekjfkdjkfjdkjfdkjf
+```
 
 
 ### 3. Setup the Frontend Viewer
