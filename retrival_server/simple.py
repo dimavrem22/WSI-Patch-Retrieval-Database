@@ -28,13 +28,6 @@ else:
     print(f"Using the following application path: {APPLICATION_DATA_LOCATION}")
 
 
-# Initializing tile vector database
-vector_db = TileVectorDB("http://localhost:8080", "demo_lung_cancer")
-SAMPLE_ID_TO_WSI_PATH = "../TEST/DFCI_sample_ID_to_WSI.json"
-
-# vector_db = TileVectorDB("http://localhost:8080", "demo_collection_big")
-# SAMPLE_ID_TO_WSI_PATH = "/home/dmv626/WSI-Patch-Retrieval-Database/TEST/SAMPLE_ID_TO_WSI_BIG.json"
-
 # Intializing the WSI pandas DB
 wsi_db = WSI_DB(db_dir_path=APPLICATION_DATA_LOCATION)
 
@@ -50,13 +43,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-with open(SAMPLE_ID_TO_WSI_PATH, "r") as f:
-    SAMPLE_ID_TO_WSI = json.load(f)
-    WSI_TO_SAMPLE_ID = {v: k for k, v in SAMPLE_ID_TO_WSI.items()}
-
 @lru_cache(maxsize=1)
 def get_active_slide(sample_id: str) -> Tuple[OpenSlide, DeepZoomGenerator]:
-    slide = OpenSlide(SAMPLE_ID_TO_WSI[sample_id])
+    slide = OpenSlide(sample_id)
     deepzoom = DeepZoomGenerator(slide, tile_size=256, overlap=0, limit_bounds=False)
     return slide, deepzoom
 
@@ -117,12 +106,8 @@ def load_wsi(sample_id: str) -> bool:
 @app.get("/metadata/")
 def get_metadata(sample_id: str) -> Dict:
 
-    if os.path.exists(sample_id):
-        SAMPLE_ID_TO_WSI[sample_id] = sample_id
-        WSI_TO_SAMPLE_ID[sample_id] = sample_id
-
     # get the wsi path
-    wsi_path = SAMPLE_ID_TO_WSI[sample_id]
+    wsi_path = sample_id
 
     # load slide (possibly already in memmory)
     slide, deepzoom = get_active_slide(sample_id=sample_id)
@@ -134,12 +119,8 @@ def get_metadata(sample_id: str) -> Dict:
     # get the resolutions at each level
     resolutions = [2**i for i in range(deepzoom.level_count)][::-1]
 
-    try:
-        tiles = vector_db.get_wsi_tiles(wsi_path=wsi_path)
-    except:
-        print("UNABLE TO GET TILES FROM QDRANT")
-        tiles = []
-
+    tiles = []
+    
     try:
         wsi_entry = wsi_db.get_wsi(wsi_path=wsi_path)
         print(wsi_entry)

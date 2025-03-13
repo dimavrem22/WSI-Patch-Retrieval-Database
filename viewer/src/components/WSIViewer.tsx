@@ -6,6 +6,7 @@ import XYZ from "ol/source/XYZ";
 import TileGrid from "ol/tilegrid/TileGrid";
 import VectorLayer from "ol/layer/Vector";
 import VectorSource from "ol/source/Vector";
+import MousePosition from 'ol/control/MousePosition.js';
 import { Feature } from "ol";
 import { Polygon, Geometry } from "ol/geom";
 import { Style, Stroke, Fill } from "ol/style";
@@ -112,11 +113,28 @@ const WSIViewer = () => {
       constrainResolution: false,
       extent: extent,
     });
+
+    const mousePositionControl = new MousePosition({
+      className: "custom-mouse-position",
+      coordinateFormat: function(coord: [number, number]) {
+        const flippedY = currentSlideMetadata.extent[3] - coord[1]; // Flip the y-coordinate
+        const roundedX = Math.round(coord[0]);
+        const roundedY = Math.round(flippedY);
+        const mousePositionText = `[${roundedX}, ${roundedY}]`; // Format as a string and return rounded coordinates
+        const mousePositionBadge = document.querySelector('.mouse-position .badge');
+        if (mousePositionBadge) {
+          mousePositionBadge.innerText = mousePositionText; // Update the text inside the Badge
+        }
+        return mousePositionText;
+      },
+      projection: "EPSG:3857",
+      undefinedHTML: '&nbsp;'
+    });
     
     const mapInstance = new Map({
       target: mapRef.current,
       layers: [tileLayer, vectorLayer],
-      controls: defaultControls({ zoom: false, rotate: false }),
+      controls: defaultControls({ zoom: false, rotate: false }).extend([mousePositionControl]),
       interactions: defaultInteractions({ doubleClickZoom: false }),
       view: view,
     });
@@ -211,7 +229,15 @@ const WSIViewer = () => {
 
   if (!currentSlideMetadata) return <div>Loading metadata...</div>
 
-  return <div className="map-container"><div ref={mapRef} className="wsi-viewer" /></div>;
+  return (
+    <div className="map-container">
+      <div ref={mapRef} className="wsi-viewer">
+        <div className="mouse-position">
+          <span className="badge">&nbsp;</span>
+        </div>
+      </div>
+    </div>
+  );
 };
 
 export default WSIViewer;

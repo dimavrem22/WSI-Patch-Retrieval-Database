@@ -89,6 +89,31 @@ button:focus-visible {
   background: #eee;
 }
 
+.mouse-position {
+  position: absolute;
+  bottom: 10px; /* Position at bottom */
+  right: 10px;  /* Align to bottom-right */
+  background: white;
+  padding: 5px 10px;
+  border-radius: 5px;
+  font-size: 14px;
+  font-weight: bold;
+  box-shadow: 0px 0px 5px rgba(0, 0, 0, 0.2);
+  z-index: 1000; /* Ensure it appears above the map */
+  pointer-events: none; /* Prevent blocking map interactions */
+}
+
+.mouse-position .badge {
+  background: white;
+  padding: 5px;
+  border-radius: 3px;
+  font-weight: bold;
+}
+
+.custom-mouse-position {
+  display: none !important;  /* Hides OpenLayers' default coordinate box */
+}
+
 .resize-handle {
   height: 100vh;
   width: 6px;

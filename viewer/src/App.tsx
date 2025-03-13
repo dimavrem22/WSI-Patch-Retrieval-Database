@@ -26,12 +26,12 @@ const App = () => {
   const { setShowHeatmap } = useTileHeatmapParamsStore();
 
   // Dynamically track which tabs should be visible
-  const availableTabs = [];
+  const availableTabs: string[] = [];
   if (currentSlideMetadata) availableTabs.push("metadata");
   if (queryResults) availableTabs.push("queryResults");
 
   // Track which tab is active
-  const [activeTab, setActiveTab] = useState(availableTabs[0] || null);
+  const [activeTab, setActiveTab] = useState(availableTabs[0] || "");
 
   useEffect(() => {
     if (availableTabs.length > 0 && !availableTabs.includes(activeTab)) {
