@@ -42,6 +42,7 @@ const WSIViewer = () => {
     fill: new Fill({ color: "hsla(60, 91.20%, 44.50%, 0.27)" }),
   });
 
+  const mapInstanceRef = useRef<Map | null>(null);
   const mapRef = useRef<HTMLDivElement>(null);
   const vectorSourceRef = useRef(new VectorSource());
   const lastHighlightedFeature = useRef<Feature<Geometry> | null>(null);
@@ -103,7 +104,7 @@ const WSIViewer = () => {
       center[0] + 1 * maxDim,
       center[1] + 1 * maxDim,
     ];
-
+    
     const view = new View({
       projection: "EPSG:3857",
       center: center,
@@ -113,6 +114,7 @@ const WSIViewer = () => {
       constrainResolution: false,
       extent: extent,
     });
+
 
     const mousePositionControl = new MousePosition({
       className: "custom-mouse-position",
@@ -138,7 +140,7 @@ const WSIViewer = () => {
       interactions: defaultInteractions({ doubleClickZoom: false }),
       view: view,
     });
-    
+    mapInstanceRef.current = mapInstance;
 
     mapInstance.on("singleclick", (event) => {
       const clickedCoords = event.coordinate;
@@ -227,6 +229,46 @@ const WSIViewer = () => {
     }
   };
 
+  useEffect(() => {
+    if (!mapInstanceRef.current || !currentSlideMetadata || !currentSlideMetadata.mpp_x) return;
+  
+    const view = mapInstanceRef.current.getView();
+  
+    const updateScaleLine = () => {
+      const resolution = view.getResolution();
+      if (!resolution) return;
+  
+      const scalebarWidthPx = 120; // Fixed pixel width
+      const micronsPerPixel = currentSlideMetadata.mpp_x; // Microns per pixel
+      let scaleInMicrons = micronsPerPixel * resolution * scalebarWidthPx;
+  
+      // Convert to mm if ≥ 1000 µm
+      let displayValue, unit;
+      if (scaleInMicrons >= 1000) {
+        displayValue = Math.round((scaleInMicrons / 1000) * 100) / 100; // Convert to mm, round to 2 decimals
+        unit = "mm";
+      } else {
+        displayValue = Math.round(scaleInMicrons * 10) / 10; // Round to 0.1 µm
+        unit = "µm";
+      }
+  
+      // Update UI
+      const scalelineValueElement = document.getElementById("scaleline-value");
+      const scalelineBarElement = document.getElementById("scaleline-bar");
+  
+      if (scalelineValueElement && scalelineBarElement) {
+        scalelineValueElement.innerText = `${displayValue} ${unit}`;
+        scalelineBarElement.style.width = `${(scaleInMicrons / (micronsPerPixel * resolution * scalebarWidthPx)) * scalebarWidthPx}px`;
+      }
+    };
+  
+    view.on("change:resolution", updateScaleLine);
+    updateScaleLine(); // Initial call
+  
+  }, [currentSlideMetadata]);
+  
+  
+
   if (!currentSlideMetadata) return <div>Loading metadata...</div>
 
   return (
@@ -234,6 +276,10 @@ const WSIViewer = () => {
       <div ref={mapRef} className="wsi-viewer">
         <div className="mouse-position">
           <span className="badge">&nbsp;</span>
+        </div>
+        <div className="scaleline-container">
+          <div id="scaleline-value"></div>
+          <div id="scaleline-bar"></div>
         </div>
       </div>
     </div>

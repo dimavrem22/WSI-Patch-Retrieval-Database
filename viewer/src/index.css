@@ -96,7 +96,7 @@ button:focus-visible {
   background: white;
   padding: 5px 10px;
   border-radius: 5px;
-  font-size: 14px;
+  font-size: 12px;
   font-weight: bold;
   box-shadow: 0px 0px 5px rgba(0, 0, 0, 0.2);
   z-index: 1000; /* Ensure it appears above the map */
@@ -214,4 +214,27 @@ button:focus-visible {
   justify-content: center;
   width: 100%;
   padding: 20px;
+}
+
+.scaleline-container {
+  position: absolute;
+  bottom: 15px;
+  left: 20px;
+  text-align: center;
+  font-size: 14px;
+  font-weight: bold;
+  font-family: Arial, sans-serif;
+  z-index: 1000; /* Ensure it appears above the map */
+  color: black;
+}
+
+#scaleline-value {
+  margin-bottom: 2px;
+  background: rgba(50, 50, 50, 0.7); /* Faint white background */
+  color: rgba(255, 255, 255, 0.7);
+}
+
+#scaleline-bar {
+  height: 3px;
+  background: black;
 }
