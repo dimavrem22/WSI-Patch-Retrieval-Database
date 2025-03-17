@@ -57,6 +57,11 @@ const FileBrowser: React.FC = () => {
     }
   };
 
+  const handleReload = () => {
+    fetchDirectory(currentPath);
+  };
+
+
   const handleDirectoryClick = (dir: string) => {
     if (dir === "..") {
       handleGoBack();
@@ -145,6 +150,7 @@ const FileBrowser: React.FC = () => {
     >
       <div style={{ marginBottom: "16px", display: "flex", alignItems: "center", gap: "8px" }}>
         <button onClick={handleGoBack} disabled={currentPath === "/"}>⬅</button>
+        <button onClick={handleReload}>🔄</button>
         <input
           ref={inputRef}
           type="text"
