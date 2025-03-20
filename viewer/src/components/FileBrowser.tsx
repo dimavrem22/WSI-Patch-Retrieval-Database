@@ -153,10 +153,15 @@ const FileBrowser: React.FC = () => {
         <button onClick={handleReload}>🔄</button>
         <input
           ref={inputRef}
-          type="text"
+          type="text" 
           value={currentPath}
           onChange={handlePathChange}
-          style={{ flexGrow: 1 }}
+          style={{
+            flexGrow: 1,
+            maxWidth: "100%", // Ensures it doesn't exceed parent width
+            width: "100%", // Makes it responsive to parent size
+            boxSizing: "border-box" // Ensures padding/borders don’t add to width
+          }}
         />
       </div>
       <ul
@@ -179,6 +184,7 @@ const FileBrowser: React.FC = () => {
           </li>
         ))}
       </ul>
+      Files: {filteredFiles.length}
     </div>
   );
 };

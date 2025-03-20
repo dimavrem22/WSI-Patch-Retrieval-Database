@@ -6,7 +6,7 @@ import pandas as pd
 from uuid import uuid4
 import torch
 from qdrant_client import QdrantClient
-from qdrant_client.models import VectorParams, PointStruct, Filter, FieldCondition, MatchValue
+from qdrant_client.models import PointStruct, VectorParams
 
 # Set the root directory dynamically
 ROOT_DIR = Path(__file__).resolve().parent.parent  # Adjust as needed
@@ -14,14 +14,16 @@ sys.path.insert(0, str(ROOT_DIR))
 
 from src.data_models import STAINS, MAGNIFICATIONS, TilePayload, DATASETS
 
+IDX = 160
+
 
 # DATABASE PARAMS
-QDRANT_ADDRESS = "http://localhost:8000"
-COLLECTION_NAME = "demo_lung_cancer"
+QDRANT_ADDRESS = "http://localhost:8080"
+COLLECTION_NAME = "cosmic_uni_test_lung"
 DATASET = DATASETS.DFCI
 MAGNIFICATION = MAGNIFICATIONS.X20
 STAIN = STAINS.HE
-VECTOR_DIM = 2560
+VECTOR_DIM = 768
 
 RARE_CANCER_LIST = [
     "Lung Adenosquamous Carcinoma",
@@ -39,13 +41,13 @@ COMMON_CANCERS_LIST = [
 # DATA PATHS
 LABEL_CSV_PATH = "/home/dmv626/WSI-Patch-Retrieval-Database/TEST/DFCI_Lung_coarse_clean.csv"
 COORDINATES_DIR = "/n/scratch/users/d/dmv626/data/DFCI-Lung-No-Pen/coordinates_"
-FEATURES_DIR = "/n/scratch/users/d/dmv626/data/DFCI-Lung-No-Pen/VIRCHOW2-Tile-Features_"
+FEATURES_DIR = "/n/scratch/users/d/dmv626/data/DFCI-Lung-No-Pen/COSMIC_UNI-Tile-Features_"
 
 
 def main():
 
     # Start an in-memory Qdrant instance
-    client = QdrantClient(location="http://localhost:8000")
+    client = QdrantClient(location=QDRANT_ADDRESS)
 
     # Create Collection
     # client.create_collection(
@@ -69,9 +71,6 @@ def main():
 
         for _, row in df_common.iterrows():
             
-            if idx >= 10:
-                break
-
             tags = ['common', row.class_name.lower()]
             wsi_path = row.slide_path
             slide_id = row.slide_id.split(".")[0]
@@ -84,19 +83,22 @@ def main():
 
             if not (os.path.exists(coord_path) and os.path.exists(features_path)):
                 print(f"ISSUE:  {coord_path} or {features_path} does not exist!")
-
-            add_wsi_to_collection(
-                client=client,
-                collection_name=COLLECTION_NAME,
-                wsi_path=wsi_path,
-                features_path=features_path,
-                coord_path=coord_path,
-                source_dataset=DATASET,
-                magnification=MAGNIFICATION,
-                tags=tags,
-                stain=STAIN,
-                patient_id=patient_id
-            )
+                continue
+            
+            print(f"Adding {idx}: {slide_id}")
+            if idx > IDX:
+                add_wsi_to_collection(
+                    client=client,
+                    collection_name=COLLECTION_NAME,
+                    wsi_path=wsi_path,
+                    features_path=features_path,
+                    coord_path=coord_path,
+                    source_dataset=DATASET,
+                    magnification=MAGNIFICATION,
+                    tags=tags,
+                    stain=STAIN,
+                    patient_id=patient_id
+                )
             idx += 1
 
 
@@ -115,19 +117,23 @@ def main():
 
         if not (os.path.exists(coord_path) and os.path.exists(features_path)):
             print(f"ISSUE:  {coord_path} or {features_path} does not exist!")
-
-        # add_wsi_to_collection(
-        #     client=client,
-        #     collection_name=COLLECTION_NAME,
-        #     wsi_path=wsi_path,
-        #     features_path=features_path,
-        #     coord_path=coord_path,
-        #     source_dataset=DATASET,
-        #     magnification=MAGNIFICATION,
-        #     tags=tags,
-        #     stain=STAIN,
-        #     patient_id=patient_id
-        # )
+            continue
+        
+        print(f"Adding {idx}: {slide_id}")
+        if idx > IDX:
+            add_wsi_to_collection(
+                client=client,
+                collection_name=COLLECTION_NAME,
+                wsi_path=wsi_path,
+                features_path=features_path,
+                coord_path=coord_path,
+                source_dataset=DATASET,
+                magnification=MAGNIFICATION,
+                tags=tags,
+                stain=STAIN,
+                patient_id=patient_id
+            )
+        idx += 1
 
     with open("/home/dmv626/WSI-Patch-Retrieval-Database/TEST/DFCI_sample_ID_to_WSI.json", "w") as f:
         json.dump(sample_to_wsi_dict, f, indent=4)
@@ -157,7 +163,7 @@ def add_wsi_to_collection(
 
     # get list of points and batch insert every 50 tiles
     points = []
-    batch_size = 50
+    batch_size = 25
 
     for i, (coord, features) in enumerate(zip(coords, tile_features)):
         uuid = str(uuid4())
@@ -185,7 +191,7 @@ def add_wsi_to_collection(
                 wait=True,
                 points=points,
             )
-            print(f"Inserted {len(points)} tiles")
+            # print(f"Inserted {len(points)} tiles")
             points = []  # Reset points list
 
     # Insert remaining points if any
