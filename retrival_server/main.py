@@ -1,6 +1,7 @@
 import os
 from functools import lru_cache
 from fastapi import FastAPI, Query, HTTPException
+import time
 from fastapi.middleware.cors import CORSMiddleware
 from openslide import OpenSlide
 import io
@@ -13,7 +14,7 @@ import json
 import getpass
 from src.qdrant_db import TileVectorDB
 from src.wsi_db import WSI_DB
-from src.data_models import STAINS, MAGNIFICATIONS, WSI_ENTRY, TilePayload
+from src.data_models import STAINS, MAGNIFICATIONS, WSI_ENTRY, WSITilePayload
 from dotenv import load_dotenv
 load_dotenv()
 
@@ -59,6 +60,13 @@ def get_active_slide(sample_id: str) -> Tuple[OpenSlide, DeepZoomGenerator]:
     slide = OpenSlide(SAMPLE_ID_TO_WSI[sample_id])
     deepzoom = DeepZoomGenerator(slide, tile_size=256, overlap=0, limit_bounds=False)
     return slide, deepzoom
+
+
+@lru_cache(maxsize=1)
+def retrive_wsi_tiles(wsi_path: str) -> List[WSITilePayload]:
+    print("getting tiles")
+    return vector_db.get_wsi_tiles(wsi_path)
+
 
 @app.get("/")
 def root() -> bool:
@@ -142,7 +150,7 @@ def get_metadata(sample_id: str) -> Dict:
     resolutions = [2**i for i in range(deepzoom.level_count)][::-1]
 
     try:
-        tiles = vector_db.get_wsi_tiles(wsi_path=wsi_path)
+        tiles = retrive_wsi_tiles(wsi_path=wsi_path)
     except:
         print("UNABLE TO GET TILES FROM QDRANT")
         tiles = []
@@ -222,7 +230,7 @@ def query_similar_tiles(
     magnification_list: List[MAGNIFICATIONS] = Query(default=[]),  # Ensure lists are properly parsed
     stain_list: List[STAINS] = Query(default=[]),
     tag_filter: str | None = None,
-) -> List[TilePayload]:
+) -> List[WSITilePayload]:
 
     print(f"Running similarity query for tile ID: {tile_uuid}")
 
@@ -241,9 +249,11 @@ def query_similar_tiles(
 def query_similar_tiles(
     tile_uuid: str,
     magnification: MAGNIFICATIONS | None = None,
-) -> List[TilePayload]:
+) -> List[WSITilePayload]:
     
     tile_payload, _ = vector_db.get_tile(tile_uuid=tile_uuid)
+    tiles = retrive_wsi_tiles(wsi_path=tile_payload.wsi_path)
+    all_uuids = {tile.uuid for tile in tiles}
 
     if not magnification:
         magnification = tile_payload.magnification
@@ -253,10 +263,25 @@ def query_similar_tiles(
     result = vector_db.run_query(
         tile_uuid=tile_uuid,
         max_hits=1_000_000,
-        min_similarity=-2,
+        min_similarity=-1,
         same_wsi=True,
         magnification_list=[magnification],
     )
+    result_uuids = {tile.uuid for tile in result}
+
+    missed_uuids = all_uuids.difference(result_uuids)
+
+    result.extend(
+        vector_db.run_query(
+            tile_uuid=tile_uuid,
+            max_hits=1_000_000,
+            min_similarity=-1,
+            same_wsi=True,
+            magnification_list=[magnification],
+            uuids=missed_uuids,
+        )
+    )
+
     if magnification == tile_payload.magnification:
         tile_payload.score = 1.0
         result.append(tile_payload)

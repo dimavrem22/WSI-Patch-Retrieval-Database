@@ -6,13 +6,14 @@ from qdrant_client.models import (
     Filter,
     FieldCondition,
     MatchValue,
+    MatchAny,
 )
 
 # Set the root directory dynamically
 ROOT_DIR = Path(__file__).resolve().parent.parent  # Adjust as needed
 sys.path.insert(0, str(ROOT_DIR))
 
-from src.data_models import TilePayload, STAINS, MAGNIFICATIONS
+from src.data_models import WSITilePayload, STAINS, MAGNIFICATIONS
 
 
 class TileVectorDB:
@@ -46,8 +47,9 @@ class TileVectorDB:
             return self.qdrant_client.get_collections() is not None
         except Exception:
             return False
-        
-    def get_wsi_tiles(self, wsi_path: str) -> List[TilePayload]:
+    
+
+    def get_wsi_tiles(self, wsi_path: str) -> List[WSITilePayload]:
         
         # Define filter condition
         filter_condition = Filter(
@@ -65,7 +67,7 @@ class TileVectorDB:
                 limit=1000,
                 offset=next_page
             )
-            all_tiles.extend([TilePayload(**point.payload) for point in points])
+            all_tiles.extend([WSITilePayload(**point.payload) for point in points])
             
             if next_page is None:  # No more data left
                 break
@@ -82,7 +84,8 @@ class TileVectorDB:
         magnification_list: List[MAGNIFICATIONS] | None = None,
         stain_list: List[STAINS] | None = None,
         tag_filter: str | None = None,
-    ) -> List[TilePayload]:
+        uuids: List[str] | None = None,
+    ) -> List[WSITilePayload]:
     
         # get query tile (payload and vector)
         payload, query_tile_vector = self.get_tile(tile_uuid=tile_uuid)
@@ -112,6 +115,14 @@ class TileVectorDB:
             tags = [tag.strip() for tag in tag_filter.split(",")]
             for tag in tags:
                 must_filters.append(FieldCondition(key="tags", match=MatchValue(value=tag)))
+
+        if uuids:
+            must_filters.append(
+                FieldCondition(
+                    key="uuid", 
+                    match=MatchAny(any=uuids)
+                )
+            )
         
         # run query
         search_result = self.qdrant_client.query_points(
@@ -131,13 +142,13 @@ class TileVectorDB:
         # formatting results to return
         results = []
         for scored_point in search_result:
-            tile = TilePayload(**scored_point.payload)
+            tile = WSITilePayload(**scored_point.payload)
             tile.score = scored_point.score
             results.append(tile)
 
         return results
 
-    def get_tile(self, tile_uuid: str) -> Tuple[TilePayload, List[float]]:
+    def get_tile(self, tile_uuid: str) -> Tuple[WSITilePayload, List[float]]:
 
         tile = self.qdrant_client.retrieve(
             collection_name=self.collection_name,
@@ -145,6 +156,6 @@ class TileVectorDB:
             with_vectors=True
         )[0]
 
-        tile_payload = TilePayload(**tile.payload)
+        tile_payload = WSITilePayload(**tile.payload)
 
         return tile_payload, tile.vector

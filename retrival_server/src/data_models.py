@@ -25,13 +25,17 @@ class MAGNIFICATIONS(Enum):
     X40 = "40x"
 
 
-class TILE_TAGS(Enum):
-    BLUR = "BLUR"
-    CANCER = "CANCER"
+class QDRANT_ENTRY_TYPES(Enum):
+    WSI_TILE = "WSI_TILE"
+    TILE = "TILE"
+    CONCEPT = "CONCEPT"
 
 
-class TilePayload(BaseModel):
+class QdrantPayload(BaseModel):
     uuid: str
+    # qdrant_entry_type: QDRANT_ENTRY_TYPES
+
+class WSITilePayload(QdrantPayload):
     patient_id: str
     wsi_path: str
     dataset: DATASETS
@@ -42,6 +46,17 @@ class TilePayload(BaseModel):
     size: int
     score: float | None = None
     tags: List[str] = []
+
+class TilePayload(QdrantPayload):
+    image_path: str
+    magnification: MAGNIFICATIONS
+    stain: STAINS
+    score: float | None = None
+    tags: List[str] = []
+
+class ConceptPayload(BaseModel):
+    uuid: str
+    concept_name: str
 
 
 class WSI_ENTRY(BaseModel):

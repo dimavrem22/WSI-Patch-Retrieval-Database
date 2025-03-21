@@ -12,7 +12,7 @@ from qdrant_client.models import PointStruct, VectorParams
 ROOT_DIR = Path(__file__).resolve().parent.parent  # Adjust as needed
 sys.path.insert(0, str(ROOT_DIR))
 
-from src.data_models import STAINS, MAGNIFICATIONS, TilePayload, DATASETS
+from src.data_models import STAINS, MAGNIFICATIONS, WSITilePayload, DATASETS
 
 IDX = -1
 
@@ -170,7 +170,7 @@ def add_wsi_to_collection(
     for i, (coord, features) in enumerate(zip(coords, tile_features)):
         uuid = str(uuid4())
         
-        payload = TilePayload(
+        payload = WSITilePayload(
             uuid=uuid,
             dataset=source_dataset,
             wsi_path=str(wsi_path),
