@@ -222,28 +222,46 @@ const WSIViewer = () => {
     const updateScaleLine = () => {
       const resolution = view.getResolution();
       if (!resolution) return;
-  
-      const scalebarWidthPx = 120; // Fixed pixel width
-      const micronsPerPixel = currentSlideMetadata.mpp_x; // Microns per pixel
-      let scaleInMicrons = micronsPerPixel * resolution * scalebarWidthPx;
-  
-      // Convert to mm if ≥ 1000 µm
+    
+      const micronsPerPixel = currentSlideMetadata.mpp_x;
+      const pixelsAvailable = 120; // Total available bar length in px
+      const realWorldLength = micronsPerPixel * resolution * pixelsAvailable;
+    
+      // Helper: round to "nice" numbers (e.g., 1, 2, 5, 10, 20, 50, 100, etc.)
+      const getNiceScale = (value) => {
+        const exponent = Math.floor(Math.log10(value));
+        const fraction = value / Math.pow(10, exponent);
+    
+        let niceFraction;
+        if (fraction < 1.5) niceFraction = 1;
+        else if (fraction < 3) niceFraction = 2;
+        else if (fraction < 7) niceFraction = 5;
+        else niceFraction = 10;
+    
+        return niceFraction * Math.pow(10, exponent);
+      };
+    
+      const niceScaleInMicrons = getNiceScale(realWorldLength);
+    
+      // Compute bar width based on the nice value
+      const barWidthPx = niceScaleInMicrons / (micronsPerPixel * resolution);
+    
       let displayValue, unit;
-      if (scaleInMicrons >= 1000) {
-        displayValue = Math.round((scaleInMicrons / 1000) * 100) / 100; // Convert to mm, round to 2 decimals
+      if (niceScaleInMicrons >= 1000) {
+        displayValue = Math.round((niceScaleInMicrons / 1000) * 100) / 100;
         unit = "mm";
       } else {
-        displayValue = Math.round(scaleInMicrons * 10) / 10; // Round to 0.1 µm
+        displayValue = Math.round(niceScaleInMicrons * 10) / 10;
         unit = "µm";
       }
-  
+    
       // Update UI
       const scalelineValueElement = document.getElementById("scaleline-value");
       const scalelineBarElement = document.getElementById("scaleline-bar");
-  
+    
       if (scalelineValueElement && scalelineBarElement) {
         scalelineValueElement.innerText = `${displayValue} ${unit}`;
-        scalelineBarElement.style.width = `${(scaleInMicrons / (micronsPerPixel * resolution * scalebarWidthPx)) * scalebarWidthPx}px`;
+        scalelineBarElement.style.width = `${barWidthPx}px`;
       }
     };
   

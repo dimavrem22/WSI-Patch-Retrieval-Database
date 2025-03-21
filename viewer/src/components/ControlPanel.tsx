@@ -75,8 +75,10 @@ const ControlPanel: React.FC<ControlPanelProps> = ({ onQueryRun, onTileHeatmapQu
         />
       </label>
       <button onClick={() => {
-        setCurrentSlide(sampleID);
-        setShowHeatmap(false);
+        if (sampleID !== currentSlideID) {
+          setCurrentSlide(sampleID);
+          setShowHeatmap(false);
+        }
         }
       }>🔍</button>
       <br /><br />
