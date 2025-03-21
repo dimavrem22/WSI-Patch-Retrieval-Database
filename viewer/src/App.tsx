@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Toaster } from "react-hot-toast";
+import toast, { Toaster } from "react-hot-toast";
 import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
 import WSIViewer from "./components/WSIViewer";
 import ControlPanel from "./components/ControlPanel";
@@ -8,6 +8,7 @@ import MetadataComponent from "./components/MetadataComponent";
 import { useGlobalStore } from "./store/useGlobalStore";
 import { useQueryStore } from "./store/useTileSearchStore";
 import { useTileHeatmapParamsStore } from "./store/useTileHeatmapStore";
+import LoadingSpinner from "./components/LoadingSpinner";
 
 const App = () => {
   const serverURL = import.meta.env.VITE_SERVER_URL;
@@ -20,6 +21,8 @@ const App = () => {
     setQueryResults,
     setHeatmap,
     currentSlideMetadata,
+    setCurrentSlideMetadata,
+    setCurrentSlide,
   } = useGlobalStore();
 
   const { maxHits, minSimilarity, magnificationList, stainList, samePatient, sameWSI, tagFilter } = useQueryStore();
@@ -38,6 +41,25 @@ const App = () => {
       setActiveTab(availableTabs[0]); // Automatically set the first available tab
     }
   }, [availableTabs, activeTab]);
+
+
+  // Update metadata when slide id changes
+  useEffect(() => {
+    if (!currentSlideID) return;
+    const fetchMetadata = async () => {
+      try {
+        const response = await fetch(`${serverURL}/metadata/?sample_id=${encodeURIComponent(currentSlideID)}`);
+        if (!response.ok) throw new Error("Failed to fetch metadata");
+        setCurrentSlideMetadata(await response.json());
+      } catch (error) {
+        console.error("Error fetching metadata:", error);
+        toast.error(`Invalid slide id: ${currentSlideID}`);
+        setCurrentSlide(null);
+        setCurrentSlideMetadata(null);
+      }
+    };
+    fetchMetadata();
+  }, [currentSlideID]);
 
   const querySimilarTiles = async () => {
     if (!selectedTile) return;
@@ -115,7 +137,11 @@ const App = () => {
         <PanelResizeHandle className="resize-handle" />
         <Panel minSize={30} className="h-full flex-1">
           {currentSlideID ? (
-            <WSIViewer/>
+            currentSlideMetadata ? (
+              <WSIViewer />
+            ) : (
+              <LoadingSpinner/>
+            )
           ) : (
             <div className="flex items-center justify-center h-full text-gray-500">
               Please search for a sample to display in the viewer.

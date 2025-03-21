@@ -43,7 +43,15 @@ export const useGlobalStore = create<GlobalState>((set) => ({
   center: null,
   heatmap: null,
 
-  setCurrentSlide: (slide) => set({ currentSlideID: slide }),
+
+  setCurrentSlide: (slideID) => {
+    set({
+      currentSlideMetadata: null,
+      currentSlideID: slideID? slideID.trim(): slideID,
+      heatmap: null
+    });
+  },
+
   setCurrentSlideMetadata: (slideMetadata) => set({ currentSlideMetadata: slideMetadata }),
   setSelectedTile: (tile) => set({ selectedTile: tile }),
   setQueryTile: (tile) => set({ queryTile: tile }),

@@ -59,9 +59,13 @@ const QueryResults: React.FC<QueryResultsProps> = ({ queryTile, resultTiles }) =
           
           <p><strong>Tag Distribution:</strong></p>
           <ul>
-            {Object.entries(tagDistribution).map(([tag, count]) => (
-              <li key={tag}>{tag}: {count} ({((count / totalResults) * 100).toFixed(1)}%)</li>
-            ))}
+            {Object.entries(tagDistribution)
+              .sort((a, b) => b[1] - a[1]) // Sort descending by count
+              .map(([tag, count]) => (
+                <li key={tag}>
+                  {tag}: {count} ({((count / totalResults) * 100).toFixed(1)}%)
+                </li>
+              ))}
           </ul>
         </div>
       </div>

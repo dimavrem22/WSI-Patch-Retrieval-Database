@@ -27,7 +27,6 @@ const WSIViewer = () => {
     selectedTile,
     setSelectedTile,
     currentSlideMetadata,
-    setCurrentSlideMetadata,
     viewMagnification,
     heatmap,
   } = useGlobalStore();
@@ -46,20 +45,6 @@ const WSIViewer = () => {
   const mapRef = useRef<HTMLDivElement>(null);
   const vectorSourceRef = useRef(new VectorSource());
   const lastHighlightedFeature = useRef<Feature<Geometry> | null>(null);
-
-  useEffect(() => {
-    if (!currentSlideID) return;
-    const fetchMetadata = async () => {
-      try {
-        const response = await fetch(`${serverURL}/metadata/?sample_id=${encodeURIComponent(currentSlideID)}`);
-        if (!response.ok) throw new Error("Failed to fetch metadata");
-        setCurrentSlideMetadata(await response.json());
-      } catch (error) {
-        console.error("Error fetching metadata:", error);
-      }
-    };
-    fetchMetadata();
-  }, [currentSlideID]);
 
   useEffect(() => {
     if (!mapRef.current || !currentSlideMetadata || !currentSlideID) return;

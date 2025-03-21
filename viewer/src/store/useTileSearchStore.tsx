@@ -35,6 +35,6 @@ interface QueryParameters {
     setStainList: (stainList) => set({ stainList }),
     setSamePatient: (samePatient) => set({ samePatient }),
     setSameWSI: (sameWSI) => set({ sameWSI }),
-    setTagFilter: (tagFilter) => set({ tagFilter }),
+    setTagFilter: (tagFilter) => set({tagFilter: tagFilter? tagFilter.trim().toLowerCase() : tagFilter}),
   }));
   

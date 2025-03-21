@@ -14,7 +14,7 @@ sys.path.insert(0, str(ROOT_DIR))
 
 from src.data_models import STAINS, MAGNIFICATIONS, TilePayload, DATASETS
 
-IDX = 160
+IDX = -1
 
 
 # DATABASE PARAMS
@@ -63,11 +63,11 @@ def main():
 
     sample_to_wsi_dict = {}
 
+    idx = 0
+
     # COMMON CANCERS
     for common_cancer in COMMON_CANCERS_LIST:
         df_common = df[df["class_name"]==common_cancer]
-
-        idx = 0
 
         for _, row in df_common.iterrows():
             
@@ -75,8 +75,6 @@ def main():
             wsi_path = row.slide_path
             slide_id = row.slide_id.split(".")[0]
             patient_id = row.case_id
-
-            sample_to_wsi_dict[slide_id] = wsi_path
 
             coord_path = COORDINATES_DIR + f"{MAGNIFICATION.value}/{slide_id}.json"
             features_path = FEATURES_DIR + f"{MAGNIFICATION.value}/{slide_id}.pt"
@@ -87,18 +85,20 @@ def main():
             
             print(f"Adding {idx}: {slide_id}")
             if idx > IDX:
-                add_wsi_to_collection(
-                    client=client,
-                    collection_name=COLLECTION_NAME,
-                    wsi_path=wsi_path,
-                    features_path=features_path,
-                    coord_path=coord_path,
-                    source_dataset=DATASET,
-                    magnification=MAGNIFICATION,
-                    tags=tags,
-                    stain=STAIN,
-                    patient_id=patient_id
-                )
+                sample_to_wsi_dict[slide_id] = wsi_path
+                pass
+                # add_wsi_to_collection(
+                #     client=client,
+                #     collection_name=COLLECTION_NAME,
+                #     wsi_path=wsi_path,
+                #     features_path=features_path,
+                #     coord_path=coord_path,
+                #     source_dataset=DATASET,
+                #     magnification=MAGNIFICATION,
+                #     tags=tags,
+                #     stain=STAIN,
+                #     patient_id=patient_id
+                # )
             idx += 1
 
 
@@ -110,7 +110,7 @@ def main():
         slide_id = row.slide_id.split(".")[0]
         patient_id = row.case_id
 
-        sample_to_wsi_dict[slide_id] = wsi_path
+        
 
         coord_path = COORDINATES_DIR + f"{MAGNIFICATION.value}/{slide_id}.json"
         features_path = FEATURES_DIR + f"{MAGNIFICATION.value}/{slide_id}.pt"
@@ -121,18 +121,20 @@ def main():
         
         print(f"Adding {idx}: {slide_id}")
         if idx > IDX:
-            add_wsi_to_collection(
-                client=client,
-                collection_name=COLLECTION_NAME,
-                wsi_path=wsi_path,
-                features_path=features_path,
-                coord_path=coord_path,
-                source_dataset=DATASET,
-                magnification=MAGNIFICATION,
-                tags=tags,
-                stain=STAIN,
-                patient_id=patient_id
-            )
+            sample_to_wsi_dict[slide_id] = wsi_path
+            pass
+            # add_wsi_to_collection(
+            #     client=client,
+            #     collection_name=COLLECTION_NAME,
+            #     wsi_path=wsi_path,
+            #     features_path=features_path,
+            #     coord_path=coord_path,
+            #     source_dataset=DATASET,
+            #     magnification=MAGNIFICATION,
+            #     tags=tags,
+            #     stain=STAIN,
+            #     patient_id=patient_id
+            # )
         idx += 1
 
     with open("/home/dmv626/WSI-Patch-Retrieval-Database/TEST/DFCI_sample_ID_to_WSI.json", "w") as f:

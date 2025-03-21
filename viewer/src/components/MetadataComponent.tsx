@@ -139,14 +139,8 @@ const MetadataComponent: React.FC<MetadataComponentProps> = ({ metadata, onMetad
             <td className="border px-2 py-1">{metadata.mpp_y}</td>
           </tr>
           <tr>
-            <td className="border px-2 py-1 font-bold">Note</td>
-            <td className="border px-2 py-1 break-words overflow-hidden">
-              {isEditing ? (
-                <textarea className="w-full p-1 border rounded text-sm" value={note? note: ""} onChange={handleNoteChange} />
-              ) : (
-                <p>{note}</p>
-              )}
-            </td>
+            <td className="border px-2 py-1 font-bold">Registered Tiles</td>
+            <td className="border px-2 py-1">{metadata.tiles.length.toLocaleString()}</td>
           </tr>
           <tr>
             <td className="border px-2 py-1 font-bold">Labels</td>
@@ -155,6 +149,16 @@ const MetadataComponent: React.FC<MetadataComponentProps> = ({ metadata, onMetad
                 <textarea className="w-full p-1 border rounded text-sm" value={labels} onChange={handleLabelsChange} />
               ) : (
                 <p>{labels}</p>
+              )}
+            </td>
+          </tr>
+          <tr>
+            <td className="border px-2 py-1 font-bold">Note</td>
+            <td className="border px-2 py-1 break-words overflow-hidden">
+              {isEditing ? (
+                <textarea className="w-full p-1 border rounded text-sm" value={note? note: ""} onChange={handleNoteChange} />
+              ) : (
+                <p>{note}</p>
               )}
             </td>
           </tr>

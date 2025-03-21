@@ -29,7 +29,7 @@ else:
 
 
 # Initializing tile vector database
-vector_db = TileVectorDB("http://localhost:8080", "demo_lung_cancer")
+vector_db = TileVectorDB("http://localhost:8080", "cosmic_uni_test_lung")
 SAMPLE_ID_TO_WSI_PATH = "../TEST/DFCI_sample_ID_to_WSI.json"
 
 # vector_db = TileVectorDB("http://localhost:8080", "demo_collection_big")
@@ -122,7 +122,10 @@ def get_metadata(sample_id: str) -> Dict:
         WSI_TO_SAMPLE_ID[sample_id] = sample_id
 
     # get the wsi path
-    wsi_path = SAMPLE_ID_TO_WSI[sample_id]
+    try:
+        wsi_path = SAMPLE_ID_TO_WSI[sample_id]
+    except KeyError as e:
+        raise HTTPException(status_code=400, detail=f"Not a valid WSI: {sample_id}")
 
     # load slide (possibly already in memmory)
     slide, deepzoom = get_active_slide(sample_id=sample_id)
