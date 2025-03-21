@@ -9,9 +9,31 @@ import { useGlobalStore } from "./store/useGlobalStore";
 import { useQueryStore } from "./store/useTileSearchStore";
 import { useTileHeatmapParamsStore } from "./store/useTileHeatmapStore";
 import LoadingSpinner from "./components/LoadingSpinner";
+import FullScreenError from "./components/FullScreenError";
+import { fetchWithTimeout } from "./utils/fetchWithTimeout";
 
 const App = () => {
   const serverURL = import.meta.env.VITE_SERVER_URL;
+  const [serverAvailable, setServerAvailable] = useState<boolean | null>(null); // null = loading, false = error, true = ready
+
+  // 🧪 Check server availability on mount
+  useEffect(() => {
+    const checkServer = async () => {
+      try {
+        console.log("trying");
+        const res = await fetchWithTimeout(`${serverURL}/`);
+        if (!res.ok) throw new Error("Ping failed");
+        const result = await res.json();
+        if (result === true) setServerAvailable(true);
+        else throw new Error("Unexpected ping response");
+      } catch (err) {
+        console.error("Server unavailable:", err);
+        setServerAvailable(false);
+      }
+    };
+    checkServer();
+  }, [serverURL]);
+
   const {
     currentSlideID,
     selectedTile,
@@ -25,6 +47,7 @@ const App = () => {
     setCurrentSlide,
   } = useGlobalStore();
 
+  
   const { maxHits, minSimilarity, magnificationList, stainList, samePatient, sameWSI, tagFilter } = useQueryStore();
   const { setShowHeatmap } = useTileHeatmapParamsStore();
 
@@ -136,16 +159,24 @@ const App = () => {
         </Panel>
         <PanelResizeHandle className="resize-handle" />
         <Panel minSize={30} className="h-full flex-1">
-          {currentSlideID ? (
-            currentSlideMetadata ? (
-              <WSIViewer />
+          {serverAvailable === null ? (
+            <div className="flex items-center justify-center h-full text-gray-500">
+              Establishing server connection...
+            </div>
+          ) : serverAvailable ? (
+            currentSlideID ? (
+              currentSlideMetadata ? (
+                <WSIViewer />
+              ) : (
+                <LoadingSpinner />
+              )
             ) : (
-              <LoadingSpinner/>
+              <div className="flex items-center justify-center h-full text-gray-500">
+                Please search for a sample to display in the viewer.
+              </div>
             )
           ) : (
-            <div className="flex items-center justify-center h-full text-gray-500">
-              Please search for a sample to display in the viewer.
-            </div>
+            <FullScreenError />
           )}
         </Panel>
         <PanelResizeHandle className="resize-handle" />

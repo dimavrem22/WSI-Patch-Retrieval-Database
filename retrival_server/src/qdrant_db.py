@@ -116,7 +116,8 @@ class TileVectorDB:
         # run query
         search_result = self.qdrant_client.query_points(
             collection_name=self.collection_name,
-            query=query_tile_vector,
+            # query=query_tile_vector,
+            query=tile_uuid,
             query_filter=Filter(
                 must=must_filters,
                 must_not=must_not_filters,

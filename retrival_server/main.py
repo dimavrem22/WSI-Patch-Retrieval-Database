@@ -60,6 +60,10 @@ def get_active_slide(sample_id: str) -> Tuple[OpenSlide, DeepZoomGenerator]:
     deepzoom = DeepZoomGenerator(slide, tile_size=256, overlap=0, limit_bounds=False)
     return slide, deepzoom
 
+@app.get("/")
+def root() -> bool:
+    """Simple Ping"""
+    return True
 
 @app.get("/home_directory/")
 def home_directory() -> str:
