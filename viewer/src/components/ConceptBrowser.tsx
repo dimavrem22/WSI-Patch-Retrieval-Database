@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useRef } from "react";
+import  { useState, useMemo, useRef, useEffect } from "react";
 import { useGlobalStore } from "../store/useGlobalStore";
 
 const ConceptBrowser = () => {
@@ -13,6 +13,12 @@ const ConceptBrowser = () => {
   } = useGlobalStore();
 
   const concepts = allConcepts || [];
+
+  useEffect(() => {
+    if (selectedConcept) {
+      setSearchTerm(selectedConcept.concept_name);
+    }
+  }, [selectedConcept]);
 
   const filteredConcepts = useMemo(() => {
     return concepts
@@ -37,7 +43,7 @@ const ConceptBrowser = () => {
         placeholder="Search concepts..."
         value={searchTerm}
         onFocus={() => setFocused(true)}
-        onBlur={() => setTimeout(() => setFocused(false), 100)} // allow click event to register before hiding
+        onBlur={() => setTimeout(() => setFocused(false), 100)}
         onChange={(e) => setSearchTerm(e.target.value)}
         style={styles.searchBar}
         disabled={concepts.length === 0}
@@ -69,51 +75,51 @@ const ConceptBrowser = () => {
 };
 
 const styles = {
-    wrapper: {
-      position: "relative" as const,
-      width: "100%",
-      maxHeight: "300px",
-    },
-    searchBar: {
-      width: "100%",
-      padding: "8px",
-      border: "1px solid #ccc",
-      fontSize: "14px",
-      borderRadius: "4px",
-      boxSizing: "border-box" as const,
-      color: "#000", // 🔥 black text
-      fontStyle: "normal", // ✨ non-italic
-    },
-    list: {
-      position: "absolute" as const,
-      top: "100%",
-      left: 0,
-      right: 0,
-      zIndex: 10,
-      backgroundColor: "white",
-      border: "1px solid #ccc",
-      maxHeight: "200px",
-      overflowY: "auto" as const,
-      borderRadius: "0 0 4px 4px",
-    },
-    listItem: {
-      padding: "8px",
-      cursor: "pointer",
-      borderBottom: "1px solid #eee",
-      color: "#000", // 🔥 black text
-      fontStyle: "normal", // ✨ non-italic
-    },
-    noMatch: {
-      position: "absolute" as const,
-      top: "100%",
-      left: 0,
-      right: 0,
-      padding: "10px",
-      backgroundColor: "#fff",
-      border: "1px solid #ccc",
-      color: "#000", // 🔥 black text
-      fontStyle: "normal", // ✨ non-italic
-    },
-  };
+  wrapper: {
+    position: "relative" as const,
+    width: "100%",
+    maxHeight: "300px",
+  },
+  searchBar: {
+    width: "100%",
+    padding: "8px",
+    border: "1px solid #ccc",
+    fontSize: "14px",
+    borderRadius: "4px",
+    boxSizing: "border-box" as const,
+    color: "#000",
+    fontStyle: "normal",
+  },
+  list: {
+    position: "absolute" as const,
+    top: "100%",
+    left: 0,
+    right: 0,
+    zIndex: 10,
+    backgroundColor: "white",
+    border: "1px solid #ccc",
+    maxHeight: "200px",
+    overflowY: "auto" as const,
+    borderRadius: "0 0 4px 4px",
+  },
+  listItem: {
+    padding: "8px",
+    cursor: "pointer",
+    borderBottom: "1px solid #eee",
+    color: "#000",
+    fontStyle: "normal",
+  },
+  noMatch: {
+    position: "absolute" as const,
+    top: "100%",
+    left: 0,
+    right: 0,
+    padding: "10px",
+    backgroundColor: "#fff",
+    border: "1px solid #ccc",
+    color: "#000",
+    fontStyle: "normal",
+  },
+};
 
 export default ConceptBrowser;

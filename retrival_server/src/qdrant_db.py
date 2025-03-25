@@ -87,7 +87,8 @@ class TileVectorDB:
         tag_filter: str | None = None,
         uuids: List[str] | None = None,
         wsi_paths: List[str] | None = None,
-        entry_type: str = QDRANT_ENTRY_TYPES.WSI_TILE.value
+        entry_type: str = QDRANT_ENTRY_TYPES.WSI_TILE.value,
+        exclude_self: bool = True
     ) -> List[WSITilePayload]:
     
         # get query tile (payload and vector)
@@ -98,8 +99,11 @@ class TileVectorDB:
 
         # create query filters
         must_filters = [FieldCondition(key="qdrant_entry_type", match=MatchValue(value=entry_type))]
-        must_not_filters = [FieldCondition(key="uuid", match=MatchValue(value=tile_uuid))]
+        must_not_filters = []
         should_filters = []
+
+        if exclude_self:
+            must_not_filters.append(FieldCondition(key="uuid", match=MatchValue(value=tile_uuid)))
 
         if same_patient is False:
             must_not_filters.append(FieldCondition(key="patient_id", match=MatchValue(value=payload.patient_id)))

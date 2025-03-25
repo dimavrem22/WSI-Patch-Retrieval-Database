@@ -261,15 +261,15 @@ const App = () => {
     <div className="h-screen w-screen flex">
       <Toaster />
       <PanelGroup direction="horizontal" className="flex-1 h-full">
-        <Panel defaultSize={20} minSize={20} className="h-full">
-          <ControlPanel 
-              onQueryRun={querySimilarTiles}
-              onTileHeatmapQuery={querySimilarTilesHeatmap}
-              onTileConceptQuery={queryTileConcepts}
-              onConceptHeatmapQuery={queryConceptHeatmap}
-              onConceptQuery={queryConceptTiles}
-          />
-        </Panel>
+      <Panel defaultSize={20} minSize={20} className="h-screen">
+        <ControlPanel 
+          onQueryRun={querySimilarTiles}
+          onTileHeatmapQuery={querySimilarTilesHeatmap}
+          onTileConceptQuery={queryTileConcepts}
+          onConceptHeatmapQuery={queryConceptHeatmap}
+          onConceptQuery={queryConceptTiles}
+        />
+      </Panel>
         <PanelResizeHandle className="resize-handle" />
         <Panel minSize={30} className="h-full flex-1">
           {serverAvailable === null ? (

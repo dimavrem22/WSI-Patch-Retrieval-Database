@@ -243,6 +243,7 @@ def query_similar_tiles(
         magnification_list=magnification_list,
         stain_list=stain_list,
         tag_filter=tag_filter,
+        exclude_self=True,
     )
 
 @app.get("/similar_tiles_heatmap/")
@@ -272,7 +273,8 @@ def query_similar_tiles_heatmap(
         min_similarity=-1,
         magnification_list=magnification,
         same_wsi=None,
-        wsi_paths=[wsi_path]
+        wsi_paths=[wsi_path],
+        exclude_self=False,
     )
 
     result_uuids = {tile.uuid for tile in result}
@@ -287,11 +289,12 @@ def query_similar_tiles_heatmap(
             same_wsi=None,
             magnification_list=magnification,
             uuids=missed_uuids,
-            wsi_paths=[wsi_path]
+            wsi_paths=[wsi_path],
+            exclude_self=False,
         )
     )
 
-    if tile_payload and magnification == tile_payload.magnification:
+    if tile_payload and tile_payload.magnification in magnification:
         tile_payload.score = 1.0
         result.append(tile_payload)
 

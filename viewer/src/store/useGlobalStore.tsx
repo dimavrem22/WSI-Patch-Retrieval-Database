@@ -12,6 +12,7 @@ interface GlobalState {
   viewMagnification: TileMagnification | null;
   center: [number, number] | null;
   heatmap: Tile[] | null;
+  normalizeHeatmap: boolean;
   conceptsQueryResults: Concept[] | null;
   allConcepts: Concept[] | null;
   selectedConcept: Concept | null;
@@ -28,6 +29,7 @@ interface GlobalState {
   setViewMagnification: (magnification: TileMagnification | null) => void;
   setCenter: (center: [number, number] | null) => void;
   setHeatmap: (heatmap: Tile[] | null) => void;
+  setNormalizeHeatmap: (normalizeHeatmap: boolean) => void;
   setConceptsQueryResults: (concepts: Concept[] | null) => void;
   setSelectedConcept: (concept: Concept | null) => void;
   setAllConcepts:  (concepts: Concept[] | null) => void;
@@ -44,6 +46,7 @@ export const useGlobalStore = create<GlobalState>((set) => ({
   viewMagnification: null,
   center: null,
   heatmap: null,
+  normalizeHeatmap: false,
   conceptsQueryResults: null,
   selectedConcept: null,
   allConcepts: null,
@@ -76,6 +79,7 @@ export const useGlobalStore = create<GlobalState>((set) => ({
   setViewMagnification: (magnification) => set({ viewMagnification: magnification }),
   setCenter: (center) => set({ center }),
   setHeatmap: (heatmap) => set({ heatmap }),
+  setNormalizeHeatmap: (normalizeHeatmap) => set({normalizeHeatmap: normalizeHeatmap}),
   setConceptsQueryResults: (concepts) => set({ conceptsQueryResults: concepts }),
   setSelectedConcept: (concept) => set({ selectedConcept: concept }),
   setAllConcepts: (concepts) => set({ allConcepts: concepts }),

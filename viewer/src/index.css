@@ -251,3 +251,30 @@ button:focus-visible {
   white-space: normal;           /* allows line wrapping */
   max-width: 100%;               /* ensures it doesn't overflow its container */
 }
+
+
+.colorbar-container {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  height: 50%;
+  width: 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  z-index: 5;
+}
+
+.colorbar-gradient {
+  flex-grow: 1;
+  width: 100%;
+  background: linear-gradient(to top, hsl(240, 100%, 50%),  hsl(60, 100%, 50%), hsl(0, 100%, 50%));
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+.colorbar-labels {
+  font-size: 12px;
+  color: #000;
+  font-weight: bold;
+}

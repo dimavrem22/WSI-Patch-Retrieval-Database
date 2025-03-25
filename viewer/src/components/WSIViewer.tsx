@@ -29,6 +29,7 @@ const WSIViewer = () => {
     currentSlideMetadata,
     viewMagnification,
     heatmap,
+    normalizeHeatmap
   } = useGlobalStore();
 
   const {
@@ -154,13 +155,28 @@ const WSIViewer = () => {
     vectorSource.clear();
 
     if (showHeatmap && heatmap) {
+      let minScore = -1;
+      let maxScore = 1;
+  
+      if (normalizeHeatmap) {
+        const scores = heatmap.map((tile) => tile.score);
+        minScore = Math.min(...scores);
+        maxScore = Math.max(...scores);
+      }
+  
+      const getNormalizedScore = (score: number): number => {
+        if (!normalizeHeatmap) return score;
+        if (maxScore === minScore) return 0;
+        return ((score - minScore) / (maxScore - minScore)) * 2 - 1; // normalize to [-1, 1]
+      };
+  
       const features = heatmap.map((tile) => {
         const x = currentSlideMetadata.extent[0] + tile.x;
         const y = currentSlideMetadata.extent[3] - tile.y - tile.size;
-      
-        // Convert score (0 to 1) into an HSL hue (240 = blue, 0 = red)
-        const hue = 240 * (1 - (tile.score+1)/2);  // 1 -> 0 (red), 0 -> 240 (blue)
-        const fillColor = `hsla(${hue}, 100%, 50%, 0.5)`;  // 50% lightness, 50% transparency
+  
+        const normScore = getNormalizedScore(tile.score);
+        const hue = 240 * (1 - (normScore + 1) / 2); // map [-1, 1] → [240, 0]
+        const fillColor = `hsla(${hue}, 100%, 50%, 0.5)`;
       
         const feature = new Feature({
           geometry: new Polygon([[
@@ -196,7 +212,7 @@ const WSIViewer = () => {
 
     vectorSource.addFeatures(features);
     highlightTile(selectedTile);
-  }, [viewMagnification, currentSlideMetadata, selectedTile, showHeatmap]);
+  }, [viewMagnification, currentSlideMetadata, selectedTile, showHeatmap, normalizeHeatmap]);
 
   const highlightTile = (tile: Tile | null) => {
     vectorSourceRef.current.forEachFeature((feature) => {
@@ -270,8 +286,10 @@ const WSIViewer = () => {
   
   }, [currentSlideMetadata]);
   
+  const scores = heatmap?.map((t) => t.score) ?? [];
+  const minScore = !normalizeHeatmap ? -1 : Math.min(...scores);
+  const maxScore = !normalizeHeatmap ? 1 : Math.max(...scores);
   
-
   if (!currentSlideMetadata) return <div>Loading metadata...</div>
 
   return (
@@ -284,6 +302,17 @@ const WSIViewer = () => {
           <div id="scaleline-value"></div>
           <div id="scaleline-bar"></div>
         </div>
+        {showHeatmap && (
+          <div className="colorbar-container">
+            <div className="colorbar-labels">
+              <span style={{ fontWeight: "bold" }}>{maxScore.toFixed(2)}</span>
+            </div>
+            <div className="colorbar-gradient" />
+            <div className="colorbar-labels">
+              <span style={{ fontWeight: "bold" }}>{minScore.toFixed(2)}</span>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
