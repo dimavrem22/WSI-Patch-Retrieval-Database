@@ -14,7 +14,7 @@ import json
 import getpass
 from src.qdrant_db import TileVectorDB
 from src.wsi_db import WSI_DB
-from src.data_models import STAINS, MAGNIFICATIONS, WSI_ENTRY, WSITilePayload
+from src.data_models import STAINS, MAGNIFICATIONS, WSI_ENTRY, WSITilePayload, ConceptPayload
 from dotenv import load_dotenv
 load_dotenv()
 
@@ -246,27 +246,35 @@ def query_similar_tiles(
     )
 
 @app.get("/similar_tiles_heatmap/")
-def query_similar_tiles(
+def query_similar_tiles_heatmap(
     tile_uuid: str,
     magnification: MAGNIFICATIONS | None = None,
+    wsi_path: str | None = None,
 ) -> List[WSITilePayload]:
     
-    tile_payload, _ = vector_db.get_tile(tile_uuid=tile_uuid)
-    tiles = retrive_wsi_tiles(wsi_path=tile_payload.wsi_path)
+    if not wsi_path:
+        tile_payload, _ = vector_db.get_tile(tile_uuid=tile_uuid)
+        wsi_path = tile_payload.wsi_path
+
+        if not magnification:
+            magnification = [tile_payload.magnification]
+    else:
+        tile_payload = None
+
+    tiles = retrive_wsi_tiles(wsi_path=wsi_path)
     all_uuids = {tile.uuid for tile in tiles}
 
-    if not magnification:
-        magnification = tile_payload.magnification
-
-    print(f"Running tile similarity heatmap: {tile_uuid}")
+    print(f"Running tile similarity heatmap: {tile_uuid} and {wsi_path}")
 
     result = vector_db.run_query(
         tile_uuid=tile_uuid,
         max_hits=1_000_000,
         min_similarity=-1,
-        same_wsi=True,
-        magnification_list=[magnification],
+        magnification_list=magnification,
+        same_wsi=None,
+        wsi_paths=[wsi_path]
     )
+
     result_uuids = {tile.uuid for tile in result}
 
     missed_uuids = all_uuids.difference(result_uuids)
@@ -276,13 +284,14 @@ def query_similar_tiles(
             tile_uuid=tile_uuid,
             max_hits=1_000_000,
             min_similarity=-1,
-            same_wsi=True,
-            magnification_list=[magnification],
+            same_wsi=None,
+            magnification_list=magnification,
             uuids=missed_uuids,
+            wsi_paths=[wsi_path]
         )
     )
 
-    if magnification == tile_payload.magnification:
+    if tile_payload and magnification == tile_payload.magnification:
         tile_payload.score = 1.0
         result.append(tile_payload)
 
@@ -297,6 +306,17 @@ def wsi_data_update(wsi_entry: WSI_ENTRY):
     except Exception as e:
         print(f"Failed to update entry: {wsi_entry}. Exception: {e}")
         raise HTTPException(status_code=500, detail="Failed to update entry")
+
+
+@app.get("/concepts/")
+def get_concepts() -> List[ConceptPayload]:
+    return vector_db.get_all_concepts()
+
+
+@app.get("/query_tile_concepts/")
+def get_tile_concepts(tile_uuid: str) -> List[ConceptPayload]:
+    return vector_db.run_tile_to_concepts_query(tile_uuid=tile_uuid)
+
 
 
 

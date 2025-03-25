@@ -36,6 +36,12 @@ export type Tile = {
   tags: string[];
 };
 
+export type Concept = {
+  uuid: string;
+  concept_name: string;
+  score: number | null;
+};
+
 export type SlideMetadata = {
   location: string;
   level_count: number;

@@ -1,35 +1,51 @@
 import { create } from 'zustand';
-import { Tile, QueryForm, SlideMetadata, TileMagnification } from '../types';
+import { Tile, QueryForm, SlideMetadata, TileMagnification, Concept } from '../types';
 
 interface GlobalState {
   currentSlideID: string | null;
   currentSlideMetadata: SlideMetadata | null;
   selectedTile: Tile | null;
-  queryTile: Tile | null;
+  similarityQueryTile: Tile | null;
+  conceptQueryTile: Tile | null;
   queryResults: Tile[] | null;
   queryControls: QueryForm;
   viewMagnification: TileMagnification | null;
   center: [number, number] | null;
   heatmap: Tile[] | null;
+  conceptsQueryResults: Concept[] | null;
+  allConcepts: Concept[] | null;
+  selectedConcept: Concept | null;
+  
 
   setCurrentSlide: (slide: string | null) => void;
   setCurrentSlideMetadata: (slideMetadata: SlideMetadata | null) => void;
   setSelectedTile: (tile: Tile | null) => void;
-  setQueryTile: (queryTile: Tile | null) => void;
+  setSimilarityQueryTile: (tile: Tile | null) => void;
+  setConceptQueryTile: (tile: Tile | null) => void;
   setQueryResults: (results: Tile[] | null) => void;
   setQueryControls: (controls: QueryForm) => void;
   setViewMagnification: (magnification: TileMagnification | null) => void;
   setCenter: (center: [number, number] | null) => void;
   setHeatmap: (heatmap: Tile[] | null) => void;
+  setConceptsQueryResults: (concepts: Concept[] | null) => void;
+  setSelectedConcept: (concept: Concept | null) => void;
+  setAllConcepts:  (concepts: Concept[] | null) => void;
 }
 
 export const useGlobalStore = create<GlobalState>((set) => ({
   currentSlideID: null,
   currentSlideMetadata: null,
   selectedTile: null,
-  queryTile: null,
+  similarityQueryTile: null,
+  conceptQueryTile: null,
   queryResults: null,
   viewMagnification: null,
+  center: null,
+  heatmap: null,
+  conceptsQueryResults: null,
+  selectedConcept: null,
+  allConcepts: null,
+
   queryControls: {
     tileUuid: "",
     maxSamples: 100,
@@ -40,24 +56,24 @@ export const useGlobalStore = create<GlobalState>((set) => ({
     stains: null,
     magnifications: null,
   },
-  center: null,
-  heatmap: null,
 
-
-  setCurrentSlide: (slideID) => {
+  setCurrentSlide: (slideID) =>
     set({
+      currentSlideID: slideID ? slideID.trim() : null,
       currentSlideMetadata: null,
-      currentSlideID: slideID? slideID.trim(): slideID,
-      heatmap: null
-    });
-  },
+      heatmap: null,
+    }),
 
   setCurrentSlideMetadata: (slideMetadata) => set({ currentSlideMetadata: slideMetadata }),
   setSelectedTile: (tile) => set({ selectedTile: tile }),
-  setQueryTile: (tile) => set({ queryTile: tile }),
+  setSimilarityQueryTile: (tile) => set({ similarityQueryTile: tile }),
+  setConceptQueryTile: (tile) => set({ conceptQueryTile: tile }),
   setQueryResults: (results) => set({ queryResults: results }),
   setQueryControls: (controls) => set({ queryControls: controls }),
   setViewMagnification: (magnification) => set({ viewMagnification: magnification }),
-  setCenter: (center) => set({ center: center }),
-  setHeatmap: (heatmap) => set({ heatmap: heatmap }),
+  setCenter: (center) => set({ center }),
+  setHeatmap: (heatmap) => set({ heatmap }),
+  setConceptsQueryResults: (concepts) => set({ conceptsQueryResults: concepts }),
+  setSelectedConcept: (concept) => set({ selectedConcept: concept }),
+  setAllConcepts: (concepts) => set({ allConcepts: concepts }),
 }));

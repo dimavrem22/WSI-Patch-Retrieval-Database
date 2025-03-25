@@ -136,7 +136,7 @@ const WSIViewer = () => {
           selectedTile = currentSlideMetadata.tiles.find((tile) => tile.uuid === feature.get("name"));
         }
       });
-
+      console.log(selectedTile);
       setSelectedTile(selectedTile || null);
       highlightTile(selectedTile);
     });

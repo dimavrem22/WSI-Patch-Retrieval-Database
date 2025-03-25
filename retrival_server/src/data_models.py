@@ -33,9 +33,11 @@ class QDRANT_ENTRY_TYPES(Enum):
 
 class QdrantPayload(BaseModel):
     uuid: str
-    # qdrant_entry_type: QDRANT_ENTRY_TYPES
+    qdrant_entry_type: QDRANT_ENTRY_TYPES
+    score: float | None = None
 
 class WSITilePayload(QdrantPayload):
+    qdrant_entry_type: QDRANT_ENTRY_TYPES = QDRANT_ENTRY_TYPES.WSI_TILE
     patient_id: str
     wsi_path: str
     dataset: DATASETS
@@ -44,18 +46,18 @@ class WSITilePayload(QdrantPayload):
     x: int
     y: int
     size: int
-    score: float | None = None
     tags: List[str] = []
 
 class TilePayload(QdrantPayload):
+    qdrant_entry_type: QDRANT_ENTRY_TYPES = QDRANT_ENTRY_TYPES.TILE
     image_path: str
     magnification: MAGNIFICATIONS
     stain: STAINS
     score: float | None = None
     tags: List[str] = []
 
-class ConceptPayload(BaseModel):
-    uuid: str
+class ConceptPayload(QdrantPayload):
+    qdrant_entry_type: QDRANT_ENTRY_TYPES = QDRANT_ENTRY_TYPES.CONCEPT
     concept_name: str
 
 

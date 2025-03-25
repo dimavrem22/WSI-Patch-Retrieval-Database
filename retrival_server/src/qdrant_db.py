@@ -13,17 +13,18 @@ from qdrant_client.models import (
 ROOT_DIR = Path(__file__).resolve().parent.parent  # Adjust as needed
 sys.path.insert(0, str(ROOT_DIR))
 
-from src.data_models import WSITilePayload, STAINS, MAGNIFICATIONS
+from src.data_models import WSITilePayload, STAINS, MAGNIFICATIONS, ConceptPayload, QDRANT_ENTRY_TYPES
 
 
 class TileVectorDB:
-    def __init__(self, qdrant_address: str, collection_name: str) -> None:
+    def __init__(self, qdrant_address: str, collection_name: str, timeout:int = 300) -> None:
         self.qdrant_address = qdrant_address
         self.collection_name = collection_name
+        self.timeout = timeout
         
         # Establish client
         try:
-            self.qdrant_client = QdrantClient(location=self.qdrant_address)
+            self.qdrant_client = QdrantClient(location=self.qdrant_address, timeout=self.timeout)
         except Exception as e:
             raise Exception(f"Failed to initialize Qdrant client at {self.qdrant_address}: {e}")
 
@@ -85,14 +86,18 @@ class TileVectorDB:
         stain_list: List[STAINS] | None = None,
         tag_filter: str | None = None,
         uuids: List[str] | None = None,
+        wsi_paths: List[str] | None = None
     ) -> List[WSITilePayload]:
     
         # get query tile (payload and vector)
-        payload, query_tile_vector = self.get_tile(tile_uuid=tile_uuid)
+        try:
+            payload, _ = self.get_tile(tile_uuid=tile_uuid)
+        except:
+            pass
 
         # create query filters
         must_filters = []
-        must_not_filters = [FieldCondition(key="uuid", match=MatchValue(value=payload.uuid))]
+        must_not_filters = [FieldCondition(key="uuid", match=MatchValue(value=tile_uuid))]
         should_filters = []
 
         if same_patient is False:
@@ -100,9 +105,9 @@ class TileVectorDB:
         if same_patient:
             must_filters.append(FieldCondition(key="patient_id", match=MatchValue(value=payload.patient_id)))
         
-        if same_wsi:
+        if same_wsi == True:
             must_filters.append(FieldCondition(key="wsi_path", match=MatchValue(value=payload.wsi_path)))
-        elif same_wsi is False:
+        elif same_wsi == False:
             must_not_filters.append(FieldCondition(key="wsi_path", match=MatchValue(value=payload.wsi_path)))
 
         if magnification_list:
@@ -121,6 +126,14 @@ class TileVectorDB:
                 FieldCondition(
                     key="uuid", 
                     match=MatchAny(any=uuids)
+                )
+            )
+
+        if wsi_paths:
+            must_filters.append(
+                FieldCondition(
+                    key="wsi_path", 
+                    match=MatchAny(any=wsi_paths)
                 )
             )
         
@@ -147,7 +160,8 @@ class TileVectorDB:
             results.append(tile)
 
         return results
-
+    
+    
     def get_tile(self, tile_uuid: str) -> Tuple[WSITilePayload, List[float]]:
 
         tile = self.qdrant_client.retrieve(
@@ -159,3 +173,60 @@ class TileVectorDB:
         tile_payload = WSITilePayload(**tile.payload)
 
         return tile_payload, tile.vector
+
+
+    def run_tile_to_concepts_query(self, tile_uuid: str) -> List[ConceptPayload]:
+
+        concept_filter = Filter(
+            must=[FieldCondition(
+                key="qdrant_entry_type",
+                match=MatchValue(value=QDRANT_ENTRY_TYPES.CONCEPT.value)
+            )]
+        )
+
+        # run query
+        search_result = self.qdrant_client.query_points(
+            collection_name=self.collection_name,
+            query=tile_uuid,
+            query_filter=concept_filter,
+            with_payload=True,
+            score_threshold=-1,
+            limit=1_000_000,
+        ).points
+
+        # formatting results to return
+        results = []
+        for scored_point in search_result:
+            tile = ConceptPayload(**scored_point.payload)
+            tile.score = scored_point.score
+            results.append(tile)
+
+        return results
+
+    def get_all_concepts(self) -> List[ConceptPayload]:
+
+        concept_filter = Filter(
+            must=[FieldCondition(
+                key="qdrant_entry_type",
+                match=MatchValue(value=QDRANT_ENTRY_TYPES.CONCEPT.value)
+            )]
+        )
+
+        # Fetch all tiles with pagination
+        all_concepts = []
+        next_page = None
+
+        while True:
+            points, next_page = self.qdrant_client.scroll(
+                collection_name=self.collection_name,
+                scroll_filter=concept_filter,
+                limit=1000,
+                offset=next_page
+            )
+            all_concepts.extend([ConceptPayload(**point.payload) for point in points])
+            
+            if next_page is None:  # No more data left
+                break
+
+        return all_concepts
+    

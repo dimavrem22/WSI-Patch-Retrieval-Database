@@ -1,13 +1,13 @@
 import React from "react";
 import TileComponent from "./TileComponent";
-import { Tile } from "../types";
+import { Tile, Concept } from "../types";
 
-interface QueryResultsProps {
-  similarityQueryTile: Tile;
+interface ConceptSimilarityResultProps {
+  queryConcept: Concept;
   resultTiles: Tile[];
 }
 
-const QueryResults: React.FC<QueryResultsProps> = ({ similarityQueryTile, resultTiles }) => {
+const ConceptSimilarityResult: React.FC<ConceptSimilarityResultProps> = ({ queryConcept, resultTiles }) => {
   const uniquePatients = new Set(resultTiles.map(tile => tile.patient_id)).size;
   const totalResults = resultTiles.length;
   
@@ -35,8 +35,8 @@ const QueryResults: React.FC<QueryResultsProps> = ({ similarityQueryTile, result
   return (
     <div className="query-results-container">
       <div className="query-content">
-        <div className="query-image-wrapper">
-          <TileComponent tile={similarityQueryTile} />
+        <div>
+          Concept: {queryConcept.concept_name}
         </div>
         <div className="query-info">
           <p><strong>Hits:</strong> {totalResults}</p>
@@ -78,4 +78,4 @@ const QueryResults: React.FC<QueryResultsProps> = ({ similarityQueryTile, result
   );
 };
 
-export default QueryResults;
+export default ConceptSimilarityResult;

@@ -11,6 +11,7 @@ import { useTileHeatmapParamsStore } from "./store/useTileHeatmapStore";
 import LoadingSpinner from "./components/LoadingSpinner";
 import FullScreenError from "./components/FullScreenError";
 import { fetchWithTimeout } from "./utils/fetchWithTimeout";
+import TileConceptQueryResults from "./components/TileConceptQueryResult";
 
 const App = () => {
   const serverURL = import.meta.env.VITE_SERVER_URL;
@@ -37,14 +38,20 @@ const App = () => {
   const {
     currentSlideID,
     selectedTile,
-    setQueryTile,
-    queryTile,
+    setSimilarityQueryTile,
+    similarityQueryTile,
     queryResults,
     setQueryResults,
     setHeatmap,
     currentSlideMetadata,
     setCurrentSlideMetadata,
     setCurrentSlide,
+    setConceptQueryTile,
+    setConceptsQueryResults,
+    conceptsQueryResults,
+    conceptQueryTile,
+    setAllConcepts,
+    selectedConcept,
   } = useGlobalStore();
 
   
@@ -55,6 +62,7 @@ const App = () => {
   const availableTabs: string[] = [];
   if (currentSlideMetadata) availableTabs.push("metadata");
   if (queryResults) availableTabs.push("queryResults");
+  if (conceptsQueryResults) availableTabs.push("tileConceptQueryResult");
 
   // Track which tab is active
   const [activeTab, setActiveTab] = useState(availableTabs[0] || "");
@@ -65,6 +73,26 @@ const App = () => {
     }
   }, [availableTabs, activeTab]);
 
+  const getAllConcepts = async () => {
+    try {
+      const response = await fetch(`${serverURL}/concepts/`);
+      if (!response.ok) throw new Error("Failed to fetch concepts");
+  
+      const data = await response.json();
+      console.log("All concepts:", data);
+      setAllConcepts(data);
+    } catch (error) {
+      console.error("Error fetching all concepts:", error);
+      toast.error("Failed to load concepts");
+      setAllConcepts(null);
+    }
+  };
+  
+  useEffect(() => {
+    if (serverAvailable === true) {
+      getAllConcepts();
+    }
+  }, [serverAvailable]);
 
   // Update metadata when slide id changes
   useEffect(() => {
@@ -84,10 +112,34 @@ const App = () => {
     fetchMetadata();
   }, [currentSlideID]);
 
+  const queryTileConcepts = async () => {
+    if (!selectedTile) return;
+
+    try {
+      setConceptQueryTile(selectedTile);
+      setConceptsQueryResults([]);
+      console.log("Running concept query for tile:", selectedTile.uuid);
+
+      const params = new URLSearchParams();
+      params.append("tile_uuid", selectedTile.uuid);
+      const response = await fetch(`${serverURL}/query_tile_concepts/?${params.toString()}`);
+      if (!response.ok) throw new Error("Failed to fetch similar tiles");
+
+      const data = await response.json();
+      console.log(data)
+      setConceptsQueryResults(data);
+      setActiveTab("tileConceptQueryResult"); // Automatically switch to Query Results tab
+
+    } catch (error) {
+      console.error("Error querying similar tiles:", error);
+      setQueryResults(null);
+    };
+  };
+
   const querySimilarTiles = async () => {
     if (!selectedTile) return;
     try {
-      setQueryTile(selectedTile);
+      setSimilarityQueryTile(selectedTile);
       setQueryResults([]);
       console.log("Running query for tile:", selectedTile.uuid);
 
@@ -101,6 +153,34 @@ const App = () => {
       if (sameWSI !== null) params.append("same_wsi", sameWSI.toString());
       if (magnificationList && magnificationList.length > 0) magnificationList.forEach(m => params.append("magnification_list", m));
       if (stainList && stainList.length > 0) stainList.forEach(s => params.append("stain_list", s));
+
+      console.log("Final query params:", params.toString());
+
+      const response = await fetch(`${serverURL}/query_similar_tiles/?${params.toString()}`);
+      if (!response.ok) throw new Error("Failed to fetch similar tiles");
+
+      const data = await response.json();
+      setQueryResults(data);
+      setActiveTab("queryResults"); // Automatically switch to Query Results tab
+    } catch (error) {
+      console.error("Error querying similar tiles:", error);
+      setQueryResults(null);
+    }
+  };
+
+  const queryConceptTiles = async () => {
+    if (!selectedConcept) return;
+    try {
+      setSimilarityQueryTile(selectedTile);
+      setQueryResults([]);
+      console.log("Running query for concept:", selectedConcept.uuid);
+
+      const params = new URLSearchParams();
+      params.append("tile_uuid", selectedConcept.uuid);
+      params.append("max_hits", maxHits.toString());
+      params.append("min_score", minSimilarity.toString());
+
+      if (tagFilter) params.append("tag_filter", tagFilter.toString());
 
       console.log("Final query params:", params.toString());
 
@@ -141,6 +221,32 @@ const App = () => {
     }
   };
 
+  const queryConceptHeatmap = async () => {
+    if (!selectedConcept || !currentSlideMetadata) return;
+
+    try {
+      setShowHeatmap(false);
+      setHeatmap(null);
+      console.log("Running heatmap for concept:", selectedConcept.uuid);
+
+      const params = new URLSearchParams();
+      params.append("tile_uuid", selectedConcept.uuid);
+      params.append("wsi_path", currentSlideMetadata.location);
+      console.log("Final query params:", params.toString());
+
+      const response = await fetch(`${serverURL}/similar_tiles_heatmap/?${params.toString()}`);
+      if (!response.ok) throw new Error("Failed to fetch heatmap tiles");
+
+      const data = await response.json();
+      setHeatmap(data);
+      setShowHeatmap(true);
+    } catch (error) {
+      console.error("Error querying similar tiles:", error);
+      setHeatmap(null);
+      setShowHeatmap(false);
+    }
+  };
+
   useEffect(() => {
     if (!currentSlideID) return;
     fetch(`${serverURL}/load_wsi/?sample_id=${encodeURIComponent(currentSlideID)}`)
@@ -153,8 +259,10 @@ const App = () => {
       <PanelGroup direction="horizontal" className="flex-1 h-full">
         <Panel defaultSize={20} minSize={20} className="h-full">
           <ControlPanel 
-            onQueryRun={querySimilarTiles}
-            onTileHeatmapQuery={querySimilarTilesHeatmap}
+              onQueryRun={querySimilarTiles}
+              onTileHeatmapQuery={querySimilarTilesHeatmap}
+              onTileConceptQuery={queryTileConcepts}
+              onConceptHeatmapQuery={queryConceptHeatmap}
           />
         </Panel>
         <PanelResizeHandle className="resize-handle" />
@@ -202,7 +310,17 @@ const App = () => {
                     }`}
                     onClick={() => setActiveTab("queryResults")}
                   >
-                    Query Results
+                    Tile Query Results
+                  </button>
+                )}
+                {availableTabs.includes("tileConceptQueryResult") && (
+                  <button
+                    className={`px-4 py-2 text-sm font-medium ${
+                      activeTab === "tileConceptQueryResult" ? "border-b-2 border-blue-500 text-blue-500" : "text-gray-500"
+                    }`}
+                    onClick={() => setActiveTab("tileConceptQueryResult")}
+                  >
+                    Tile Concepts
                   </button>
                 )}
               </div>
@@ -213,8 +331,11 @@ const App = () => {
               {activeTab === "metadata" && currentSlideMetadata && (
                 <MetadataComponent metadata={currentSlideMetadata} onMetadataChange={() => {}} />
               )}
-              {activeTab === "queryResults" && queryTile && queryResults && (
-                <QueryResults queryTile={queryTile} resultTiles={queryResults} />
+              {activeTab === "queryResults" && similarityQueryTile && queryResults && (
+                <QueryResults similarityQueryTile={similarityQueryTile} resultTiles={queryResults} />
+              )}
+               {activeTab === "tileConceptQueryResult" && conceptQueryTile && conceptsQueryResults && (
+                <TileConceptQueryResults  queryTile={conceptQueryTile} resultConcepts={conceptsQueryResults}/>
               )}
             </div>
           </Panel>
