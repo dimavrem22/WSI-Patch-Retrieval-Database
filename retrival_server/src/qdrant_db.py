@@ -86,7 +86,8 @@ class TileVectorDB:
         stain_list: List[STAINS] | None = None,
         tag_filter: str | None = None,
         uuids: List[str] | None = None,
-        wsi_paths: List[str] | None = None
+        wsi_paths: List[str] | None = None,
+        entry_type: str = QDRANT_ENTRY_TYPES.WSI_TILE.value
     ) -> List[WSITilePayload]:
     
         # get query tile (payload and vector)
@@ -96,7 +97,7 @@ class TileVectorDB:
             pass
 
         # create query filters
-        must_filters = []
+        must_filters = [FieldCondition(key="qdrant_entry_type", match=MatchValue(value=entry_type))]
         must_not_filters = [FieldCondition(key="uuid", match=MatchValue(value=tile_uuid))]
         should_filters = []
 

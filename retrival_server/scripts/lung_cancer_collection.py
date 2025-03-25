@@ -110,8 +110,6 @@ def main():
         slide_id = row.slide_id.split(".")[0]
         patient_id = row.case_id
 
-        
-
         coord_path = COORDINATES_DIR + f"{MAGNIFICATION.value}/{slide_id}.json"
         features_path = FEATURES_DIR + f"{MAGNIFICATION.value}/{slide_id}.pt"
 

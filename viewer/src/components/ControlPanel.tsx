@@ -11,10 +11,11 @@ interface ControlPanelProps {
   onTileHeatmapQuery: () => void;
   onTileConceptQuery: () => void;
   onConceptHeatmapQuery: () => void;
+  onConceptQuery: () => void;
 }
 
 const ControlPanel: React.FC<ControlPanelProps> = (
-  { onQueryRun, onTileHeatmapQuery, onTileConceptQuery, onConceptHeatmapQuery}
+  { onQueryRun, onTileHeatmapQuery, onTileConceptQuery, onConceptHeatmapQuery, onConceptQuery}
 ) => {
   const {
     selectedTile,
@@ -203,27 +204,6 @@ const ControlPanel: React.FC<ControlPanelProps> = (
       </Section>
 
       <Section
-        title="Tile Concept Query"
-        expanded={tileConceptVisible}
-        onToggle={() => setTileConceptVisible(!tileConceptVisible)}
-      >
-
-        {!selectedTile && (
-          <div style={{ color: "red" }}>Please select a tile.</div>
-        )}
-
-        {selectedTile && (
-          <div>Selected tile: {selectedTile.uuid}</div>
-        )
-        }
-        
-        <button disabled={selectedTile == null} onClick={onTileConceptQuery}>
-          SEARCH
-        </button>
-
-      </Section>
-
-      <Section
         title="Tile Similarity Heatmap"
         expanded={tileSimilarityHeatmapVisible}
         onToggle={() => setTileSimilarityHeatmapVisible(!tileSimilarityHeatmapVisible)}
@@ -254,6 +234,26 @@ const ControlPanel: React.FC<ControlPanelProps> = (
         </button>
       </Section>
       <Section
+        title="Tile Concept Query"
+        expanded={tileConceptVisible}
+        onToggle={() => setTileConceptVisible(!tileConceptVisible)}
+      >
+
+        {!selectedTile && (
+          <div style={{ color: "red" }}>Please select a tile.</div>
+        )}
+
+        {selectedTile && (
+          <div>Selected tile: {selectedTile.uuid}</div>
+        )
+        }
+        
+        <button disabled={selectedTile == null} onClick={onTileConceptQuery}>
+          SEARCH
+        </button>
+
+      </Section>
+      <Section
         title="Concept Similarity Search"
         expanded={conceptSimilarityVisible}
         onToggle={() => setConceptSimilarityVisible(!conceptSimilarityVisible)}
@@ -282,29 +282,6 @@ const ControlPanel: React.FC<ControlPanelProps> = (
           />
         </label>
         <br /><br />
-
-        <Dropdown
-          label="Patient Filter:"
-          value={samePatientQuery}
-          options={["NA", "same", "other"]}
-          onChange={(value) => {
-            setSamePatientQuery(value);
-            setSamePatient(value === "same" ? true : value === "other" ? false : null);
-          }}
-        />
-        <br /><br />
-
-        <Dropdown
-          label="WSI Filter:"
-          value={sameWsiQuery}
-          options={["NA", "same", "other"]}
-          onChange={(value) => {
-            setSameWsiQuery(value);
-            setSameWSI(value === "same" ? true : value === "other" ? false : null);
-          }}
-        />
-        <br /><br />
-
         <label>
           Tag Filter:
           <input
@@ -320,7 +297,7 @@ const ControlPanel: React.FC<ControlPanelProps> = (
           />
         </label>
         <br /><br />
-        <button disabled={selectedTile == null} onClick={onQueryRun}>
+        <button disabled={selectedConcept == null} onClick={onConceptQuery}>
           SEARCH
         </button>
       </Section>

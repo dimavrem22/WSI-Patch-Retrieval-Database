@@ -52,6 +52,8 @@ const App = () => {
     conceptQueryTile,
     setAllConcepts,
     selectedConcept,
+    queryTarget,
+    setQueryTarget,
   } = useGlobalStore();
 
   
@@ -161,6 +163,7 @@ const App = () => {
 
       const data = await response.json();
       setQueryResults(data);
+      setQueryTarget(selectedTile);
       setActiveTab("queryResults"); // Automatically switch to Query Results tab
     } catch (error) {
       console.error("Error querying similar tiles:", error);
@@ -189,6 +192,7 @@ const App = () => {
 
       const data = await response.json();
       setQueryResults(data);
+      setQueryTarget(selectedConcept);
       setActiveTab("queryResults"); // Automatically switch to Query Results tab
     } catch (error) {
       console.error("Error querying similar tiles:", error);
@@ -263,6 +267,7 @@ const App = () => {
               onTileHeatmapQuery={querySimilarTilesHeatmap}
               onTileConceptQuery={queryTileConcepts}
               onConceptHeatmapQuery={queryConceptHeatmap}
+              onConceptQuery={queryConceptTiles}
           />
         </Panel>
         <PanelResizeHandle className="resize-handle" />
@@ -331,8 +336,8 @@ const App = () => {
               {activeTab === "metadata" && currentSlideMetadata && (
                 <MetadataComponent metadata={currentSlideMetadata} onMetadataChange={() => {}} />
               )}
-              {activeTab === "queryResults" && similarityQueryTile && queryResults && (
-                <QueryResults similarityQueryTile={similarityQueryTile} resultTiles={queryResults} />
+              {activeTab === "queryResults" && queryTarget && queryResults && (
+                <QueryResults similarityQueryTarget={queryTarget} resultTiles={queryResults} />
               )}
                {activeTab === "tileConceptQueryResult" && conceptQueryTile && conceptsQueryResults && (
                 <TileConceptQueryResults  queryTile={conceptQueryTile} resultConcepts={conceptsQueryResults}/>

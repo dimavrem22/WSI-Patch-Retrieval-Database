@@ -1,13 +1,26 @@
 import React from "react";
 import TileComponent from "./TileComponent";
-import { Tile } from "../types";
+import { Tile, Concept } from "../types";
+
+function isTile(obj: Tile | Concept): obj is Tile {
+  return (
+    "patient_id" in obj &&
+    "stain" in obj &&
+    "magnification" in obj &&
+    "tags" in obj
+  );
+}
+
+function isConcept(obj: Tile | Concept): obj is Concept {
+  return "concept_name" in obj;
+}
 
 interface QueryResultsProps {
-  similarityQueryTile: Tile;
+  similarityQueryTarget: Tile | Concept;
   resultTiles: Tile[];
 }
 
-const QueryResults: React.FC<QueryResultsProps> = ({ similarityQueryTile, resultTiles }) => {
+const QueryResults: React.FC<QueryResultsProps> = ({ similarityQueryTarget, resultTiles }) => {
   const uniquePatients = new Set(resultTiles.map(tile => tile.patient_id)).size;
   const totalResults = resultTiles.length;
   
@@ -35,32 +48,41 @@ const QueryResults: React.FC<QueryResultsProps> = ({ similarityQueryTile, result
   return (
     <div className="query-results-container">
       <div className="query-content">
-        <div className="query-image-wrapper">
-          <TileComponent tile={similarityQueryTile} />
-        </div>
+      <div className="query-image-wrapper">
+        {isTile(similarityQueryTarget) && (
+          <TileComponent tile={similarityQueryTarget} />
+        )}
+        {isConcept(similarityQueryTarget) && (
+          <div className="concept-name-display">
+            Query Concept:
+            <br></br>
+            {similarityQueryTarget.concept_name}
+          </div>
+        )}
+      </div>
         <div className="query-info">
           <p><strong>Hits:</strong> {totalResults}</p>
           <p><strong>Unique Patients:</strong> {uniquePatients}</p>
           <p><strong>Similarity:</strong> {minScore} - {maxScore}</p>
-          
+  
           <p><strong>Stain Distribution:</strong></p>
           <ul>
             {Object.entries(stainDistribution).map(([stain, count]) => (
               <li key={stain}>{stain}: {count} ({((count / totalResults) * 100).toFixed(1)}%)</li>
             ))}
           </ul>
-          
+  
           <p><strong>Magnification Distribution:</strong></p>
           <ul>
             {Object.entries(magnificationDistribution).map(([mag, count]) => (
               <li key={mag}>{mag}: {count} ({((count / totalResults) * 100).toFixed(1)}%)</li>
             ))}
           </ul>
-          
+  
           <p><strong>Tag Distribution:</strong></p>
           <ul>
             {Object.entries(tagDistribution)
-              .sort((a, b) => b[1] - a[1]) // Sort descending by count
+              .sort((a, b) => b[1] - a[1])
               .map(([tag, count]) => (
                 <li key={tag}>
                   {tag}: {count} ({((count / totalResults) * 100).toFixed(1)}%)
@@ -76,6 +98,6 @@ const QueryResults: React.FC<QueryResultsProps> = ({ similarityQueryTile, result
       </div>
     </div>
   );
-};
+}
 
 export default QueryResults;

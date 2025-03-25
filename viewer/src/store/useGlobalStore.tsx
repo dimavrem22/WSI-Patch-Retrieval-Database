@@ -15,7 +15,8 @@ interface GlobalState {
   conceptsQueryResults: Concept[] | null;
   allConcepts: Concept[] | null;
   selectedConcept: Concept | null;
-  
+  queryTarget: Concept | Tile | null;
+
 
   setCurrentSlide: (slide: string | null) => void;
   setCurrentSlideMetadata: (slideMetadata: SlideMetadata | null) => void;
@@ -30,6 +31,7 @@ interface GlobalState {
   setConceptsQueryResults: (concepts: Concept[] | null) => void;
   setSelectedConcept: (concept: Concept | null) => void;
   setAllConcepts:  (concepts: Concept[] | null) => void;
+  setQueryTarget: (target: Concept | Tile | null) => void;
 }
 
 export const useGlobalStore = create<GlobalState>((set) => ({
@@ -45,8 +47,9 @@ export const useGlobalStore = create<GlobalState>((set) => ({
   conceptsQueryResults: null,
   selectedConcept: null,
   allConcepts: null,
+  queryTarget: null,
 
-  queryControls: {
+  queryControls: {  
     tileUuid: "",
     maxSamples: 100,
     minSimilarity: 0.75,
@@ -76,4 +79,5 @@ export const useGlobalStore = create<GlobalState>((set) => ({
   setConceptsQueryResults: (concepts) => set({ conceptsQueryResults: concepts }),
   setSelectedConcept: (concept) => set({ selectedConcept: concept }),
   setAllConcepts: (concepts) => set({ allConcepts: concepts }),
+  setQueryTarget: (target) => set({queryTarget: target})
 }));
